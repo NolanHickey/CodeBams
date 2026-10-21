@@ -163,6 +163,7 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .roster li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .roster .role { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; flex: none; }
 .roster h3 { margin: 0 0 4px; font-family: var(--font-card); font-size: 14px; text-transform: uppercase; letter-spacing: .1em; }
+.roster li.me span:first-child { font-weight: 700; }
 .roster .red h3 { color: var(--red); } .roster .blue h3 { color: var(--blue); }
 .wr { gap: 14px; padding: 24px; }
 .wr-title { font-family: var(--font-display); font-weight: 900; font-size: clamp(2rem, 5vw, 3.4rem); text-transform: uppercase; line-height: 1; text-wrap: balance; }
@@ -424,6 +425,7 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
       <div class="panel" id="pAction"></div>
       <main class="board phone" id="pBoard" aria-label="Agent grid"></main>
       <p class="hint" id="pNote"></p>
+      <div class="panel"><h2>Teams</h2><div class="roster" id="pRoster"></div></div>
     </div>
   </section>
 </div>
@@ -778,6 +780,16 @@ async function hostCall(fn, args, errEl, btn) {
   if (btn) btn.disabled = false;
   render();
 }
+// Both teams with spymaster first. Used on the big screen and on every phone.
+function rosterHTML(ps, meId) {
+  const col = t => {
+    const items = ps.filter(p => p.team === t).sort((a, b) => (a.role === 'spymaster' ? -1 : 1) - (b.role === 'spymaster' ? -1 : 1))
+      .map(p => '<li' + (p.id === meId ? ' class="me"' : '') + '><span>' + esc(p.name) + (p.id === meId ? ' (you)' : p.is_test ? ' (test)' : '') +
+        '</span><span class="role">' + (p.role === 'spymaster' ? 'Spymaster' : 'Op') + '</span></li>').join('');
+    return '<div class="' + t + '"><h3>' + cap(t) + '</h3><ul>' + (items || '<li class="muted">Nobody</li>') + '</ul></div>';
+  };
+  return col('red') + col('blue');
+}
 function renderRecords(el, ps) {
   const rows = ps.slice().sort((a, b) => (b.wins - a.wins) || (b.all_wins - a.all_wins) || a.name.localeCompare(b.name));
   el.innerHTML = '<thead><tr><th>Player</th><th>Tonight</th><th>All-time</th><th>Win %</th></tr></thead><tbody></tbody>';
@@ -853,12 +865,7 @@ function renderHost() {
     $('hAim').appendChild(li);
   });
   $('hGuess').textContent = guessHint(S);
-  const col = t => {
-    const items = ps.filter(p => p.team === t).sort((a, b) => (a.role === 'spymaster' ? -1 : 1) - (b.role === 'spymaster' ? -1 : 1))
-      .map(p => '<li><span>' + esc(p.name) + (p.is_test ? ' (test)' : '') + '</span><span class="role">' + (p.role === 'spymaster' ? 'Spymaster' : 'Op') + '</span></li>').join('');
-    return '<div class="' + t + '"><h3>' + cap(t) + '</h3><ul>' + (items || '<li class="muted">Nobody</li>') + '</ul></div>';
-  };
-  $('hRoster').innerHTML = col('red') + col('blue');
+  $('hRoster').innerHTML = rosterHTML(ps, null);
   const fp = S.from_players || 0;
   $('hLate').textContent = (fp ? 'This board has ' + fp + ' word' + (fp === 1 ? '' : 's') + ' from players and ' + (25 - fp) + ' extra' + (25 - fp === 1 ? '' : 's') + '. ' : '') +
     'Late arrivals can join with code ' + S.code + ' and land on the smaller team.';
@@ -944,6 +951,7 @@ function renderPlayer() {
     act.innerHTML = '<div class="current-clue"><small>Waiting for ' + cap(S.turn) + "'s spymaster to give a clue · <span class=\"timer\" data-timer></span></small></div>";
   }
   renderDare($('pDare'), me);
+  $('pRoster').innerHTML = rosterHTML(S.players || [], me.id);
 
   const canGuess = !spy && mine && !!S.clue_word && !busy;
   if (sel !== null && (!canGuess || S.revealed[sel])) sel = null;
