@@ -892,6 +892,7 @@ function enterPlayer(p) {
   if (testing) renderTestBar(p.token);
   $('pSeat').innerHTML = '<b>Joining ' + esc(p.code) + '…</b>';
   sel = null; busy = false;
+  resetPrivateInputs();
   connect({ code: p.code, token: p.token, as: 'player' });
 }
 async function playerCall(fn, args) {
@@ -970,16 +971,25 @@ function renderPlayer() {
 }
 
 /* clue composer (spymasters) */
-let draft = { code: null, round: null, word: '', targets: [] };
+// Drafts are kept per player, so a device shared between players (or the host's test seats) never shows someone else's.
+let draft = { key: null, round: null, word: '', targets: [] };
+const draftKey = () => 'codebams.draft.' + ROOM.code + '.' + ROOM.token;
 function syncDraft(me) {
-  if (draft.code !== ROOM.code || draft.round !== S.round) {
-    let d = null; try { d = JSON.parse(store.get('codebams.draft.' + ROOM.code, 'null')); } catch (e) {}
-    draft = (d && d.round === S.round) ? d : { code: ROOM.code, round: S.round, word: '', targets: [] };
+  if (draft.key !== draftKey() || draft.round !== S.round) {
+    let d = null; try { d = JSON.parse(store.get(draftKey(), 'null')); } catch (e) {}
+    draft = (d && d.round === S.round) ? Object.assign(d, { key: draftKey() }) : { key: draftKey(), round: S.round, word: '', targets: [] };
   }
   // Drop any aimed card that has been revealed since (for example by the other team).
   draft.targets = draft.targets.filter(i => !S.revealed[i] && S.keys && S.keys[i] === me.team);
 }
-function saveDraft() { store.set('codebams.draft.' + ROOM.code, JSON.stringify(draft)); }
+function saveDraft() { if (ROOM) store.set(draftKey(), JSON.stringify(draft)); }
+// Clears every box that holds one player's private words, dares or clue.
+function resetPrivateInputs() {
+  $('pwText').value = ''; $('pwDares').value = ''; $('pcWord').value = ''; $('pcTargets').innerHTML = ''; $('pConfirm').hidden = true;
+  pwEditing = false; pwBusy = false; lastPhase = null;
+  draft = { key: null, round: null, word: '', targets: [] };
+  updatePwCount();
+}
 function toggleTarget(i) {
   const at = draft.targets.indexOf(i);
   if (at >= 0) draft.targets.splice(at, 1);
