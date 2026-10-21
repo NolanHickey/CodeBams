@@ -64,6 +64,8 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .btn.blue { background: var(--blue); border-color: var(--blue); color: var(--on-team); }
 .btn.cur { outline: 3px solid var(--focus); outline-offset: 1px; }
 .testtools { border-style: dashed; }
+.testtools.lead { border: 2px solid var(--ok); }
+.lead-note { margin: 0; font-size: 17px; font-weight: 600; }
 .testtools summary { cursor: pointer; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; list-style: none; }
 .testtools summary::-webkit-details-marker { display: none; }
 .testtools summary::before { content: "▸"; color: var(--muted); }
@@ -354,14 +356,9 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
       <div class="panel">
         <div class="row" style="justify-content:space-between"><h2 id="hCount">Players</h2><span class="hint" id="hNeed"></span></div>
         <ul class="lobby-list" id="hPlayers"></ul>
-        <div class="row">
-          <button class="btn go big" type="button" id="hStart" disabled>Start game</button>
-          <button class="btn" type="button" id="hWordsLobby">Word list</button>
-          <button class="btn" type="button" id="hTestGame">Test game</button>
-          <button class="btn" type="button" id="hExit">Close room</button>
-        </div>
-        <p class="hint">Test game adds 4 test players you can play from this screen, so you can try everything without phones.</p>
-        <p class="hint">Start opens the word round: everyone adds words on their phone. Then the players are split into two even teams with a random spymaster each. Only spymasters see the key.</p>
+        <p class="lead-note" id="hLeadNote"></p>
+        <p class="hint">Starting opens the word round: everyone adds words on their phone. Then the players are split into two even teams with a random spymaster each. Only spymasters see the key.</p>
+        <div class="row"><button class="btn" type="button" id="hExit">Close room</button></div>
         <p class="err" id="hLobbyErr"></p>
       </div>
       <div class="panel" id="hRecordsLobbyPanel" hidden><h2>Records</h2><div class="rec-wrap"><table class="records" id="hRecordsLobby"></table></div></div>
@@ -374,11 +371,7 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
       <div class="wr-title">Add your words on your phone</div>
       <p class="wr-sub" id="hwrHint"></p>
       <ul class="wr-list" id="hwrList"></ul>
-      <div class="row">
-        <button class="btn go big" type="button" id="hwrStart">Start now</button>
-        <button class="btn" type="button" id="hwrLobby">Back to lobby</button>
-      </div>
-      <p class="hint">The game starts on its own when everyone is done. Start now skips anyone still typing.</p>
+      <p class="hint" id="hwrLead">The game starts on its own when everyone is done.</p>
       <p class="err" id="hwrErr"></p>
     </div>
   </section>
@@ -396,48 +389,12 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
         <div class="panel" id="hAimPanel" hidden><h2>What the spymasters meant</h2><ul class="aimlist" id="hAim"></ul></div>
         <div class="panel"><h2>Teams</h2><div class="roster" id="hRoster"></div><p class="hint" id="hLate"></p></div>
         <div class="panel"><h2>Records</h2><div class="rec-wrap"><table class="records" id="hRecords"></table></div></div>
-        <div class="panel">
-          <h2>Game</h2>
-          <div class="row">
-            <button class="btn" type="button" id="hEnd">End turn</button>
-            <button class="btn primary" type="button" id="hAgain">New game, same teams</button>
-            <button class="btn" type="button" id="hShuffle">Reshuffle teams</button>
-            <button class="btn" type="button" id="hWords">Word list</button>
-            <button class="btn" type="button" id="hLobbyBtn">Back to lobby</button>
-          </div>
-          <p class="hint">Same teams passes the spymaster role to the next teammate.</p>
-          <p class="err" id="hGameErr"></p>
-        </div>
+        <p class="err" id="hGameErr"></p>
         <div class="panel"><h2>Clue log</h2><ul class="log" id="hLog"></ul></div>
       </aside>
     </div>
   </section>
 
-  <details class="panel testtools" id="hTest">
-    <summary><span class="tt-title">Test tools</span><span class="hint">Play every seat from this screen and force a winner</span></summary>
-    <div class="tt-body">
-      <div class="row">
-        <button class="btn" type="button" id="ttAdd">Add 4 test players</button>
-        <button class="btn" type="button" id="ttRemove">Remove test players</button>
-      </div>
-      <div>
-        <div class="label" style="margin-bottom:6px">Play as</div>
-        <div class="row" id="ttSeats"><span class="hint">No test players yet.</span></div>
-      </div>
-      <div class="row" id="ttWordRow" hidden>
-        <button class="btn" type="button" id="ttSkip">Mark test players done with the word round</button>
-      </div>
-      <div id="ttEndRow" hidden>
-        <div class="label" style="margin-bottom:6px">End the test game</div>
-        <div class="row">
-          <button class="btn red" type="button" id="ttRed">Red wins</button>
-          <button class="btn blue" type="button" id="ttBlue">Blue wins</button>
-        </div>
-      </div>
-      <p class="hint">Ending a game early only works while test players are in the room, so it can't be used in real games. Test players never get records.</p>
-      <p class="err" id="ttErr"></p>
-    </div>
-  </details>
 </div>
 
 <!-- PLAYER -->
@@ -446,19 +403,20 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
     <h1 class="logo sm">Code<span>b</span><em>a</em>ms</h1>
     <span class="conn" id="pConn">Connecting…</span>
   </header>
-  <div class="testbar" id="pTestBar" hidden>
-    <div class="row" style="justify-content:space-between">
-      <span>Test mode: playing as <b id="ptbName"></b></span>
-      <button class="btn" type="button" id="ptbBack">Back to big screen</button>
-    </div>
-    <div class="row" id="ptbSeats"></div>
-  </div>
   <div class="seatbar"><span class="seat-chip" id="pSeat"></span><button class="btn" type="button" id="pLeave">Leave</button></div>
+  <details class="panel testtools lead" id="pLead" hidden open>
+    <summary><span class="tt-title">You're running this game</span><span class="hint">You joined first</span></summary>
+    <div class="tt-body">
+      <div class="row" id="plRow"></div>
+      <p class="hint" id="plHint"></p>
+      <p class="err" id="plErr"></p>
+    </div>
+  </details>
 
   <section id="pLobby" hidden>
     <div class="panel">
       <h2>You're in</h2>
-      <p style="margin:0">Waiting for the host to start. You'll get to add your own words first, then teams and spymasters are picked automatically.</p>
+      <p style="margin:0" id="pWaitLead">Waiting for the game to start.</p>
       <ul class="lobby-list" id="pPlayers"></ul>
     </div>
   </section>
@@ -709,8 +667,6 @@ $('wordsSave').addEventListener('click', () => {
 $('wordsCancel').addEventListener('click', () => { $('wordsGate').hidden = true; });
 $('defCount').textContent = DEFAULT_WORDS.length;
 $('defChips').innerHTML = DEFAULT_WORDS.map(w => '<span class="chip">' + w + '</span>').join('');
-$('hWordsLobby').addEventListener('click', openWords);
-$('hWords').addEventListener('click', openWords);
 
 /* ---------- shared rendering ---------- */
 function keyAt(S, i) { return S.keys ? S.keys[i] : (S.revealed_keys && S.revealed_keys[i]) || 'hidden'; }
@@ -835,8 +791,7 @@ async function refresh() {
   } catch (e) {
     if (ROOM === room) {
       const m = e.message || '';
-      if (room.as === 'player' && testHost && m.includes('not_member')) { const h = testHost; testHost = null; enterHost(h); }
-      else if (m.includes('not_member') || m.includes('room_not_found') || m.includes('not_host')) {
+      if (m.includes('not_member') || m.includes('room_not_found') || m.includes('not_host')) {
         if (room.as === 'host') store.del(KEY_HOST); else store.del(keyPlayer(room.code));
         disconnect(); goHome(m.includes('room_not_found') ? 'That room has closed.' : "You're no longer in that room.");
       }
@@ -911,7 +866,7 @@ async function hostCall(fn, args, errEl, btn) {
 function rosterHTML(ps, meId) {
   const col = t => {
     const items = ps.filter(p => p.team === t).sort((a, b) => (a.role === 'spymaster' ? -1 : 1) - (b.role === 'spymaster' ? -1 : 1))
-      .map(p => '<li' + (p.id === meId ? ' class="me"' : '') + '><span>' + esc(p.name) + (p.id === meId ? ' (you)' : p.is_test ? ' (test)' : '') +
+      .map(p => '<li' + (p.id === meId ? ' class="me"' : '') + '><span>' + esc(p.name) + (p.id === meId ? ' (you)' : '') +
         '</span><span class="role">' + (p.role === 'spymaster' ? 'Spymaster' : 'Op') + '</span></li>').join('');
     return '<div class="' + t + '"><h3>' + cap(t) + '</h3><ul>' + (items || '<li class="muted">Nobody</li>') + '</ul></div>';
   };
@@ -929,13 +884,17 @@ function renderRecords(el, ps) {
     body.appendChild(tr);
   });
 }
+function leaderName() {
+  const p = S && (S.players || []).find(x => x.id === S.leader_id);
+  return p ? p.name : '';
+}
 function renderHost() {
-  renderTestTools();
   const lobby = S.status === 'lobby', words = S.status === 'words';
   $('hLobby').hidden = !lobby; $('hWordRound').hidden = !words; $('hGame').hidden = lobby || words;
   const ps = S.players || [];
   if (words) {
     const done = ps.filter(p => p.done).length;
+    $('hwrLead').textContent = 'The game starts on its own when everyone is done' + (leaderName() ? ', or when ' + leaderName() + ' taps Start now on their phone.' : '.');
     $('hwrHint').textContent = done + ' of ' + ps.length + ' done' + (S.pool_count ? ' · ' + S.pool_count + ' unused word' + (S.pool_count === 1 ? '' : 's') + ' carried over from earlier games' : '') + '. Join with code ' + S.code + '.';
     const list = $('hwrList'); list.innerHTML = '';
     ps.forEach(p => {
@@ -956,12 +915,15 @@ function renderHost() {
     if (!ps.length) list.innerHTML = '<li class="muted" style="padding:5px 14px">Nobody yet. Scan the code to join.</li>';
     ps.forEach(p => {
       const li = document.createElement('li');
-      li.appendChild(document.createTextNode(p.name + (p.is_test ? ' (test)' : '')));
+      li.appendChild(document.createTextNode(p.name));
       const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.title = 'Remove ' + p.name; x.setAttribute('aria-label', 'Remove ' + p.name);
       x.addEventListener('click', () => hostCall('kick_player', { p_host: ROOM.token, p_player: p.id }, $('hLobbyErr')));
       li.appendChild(x); list.appendChild(li);
     });
-    $('hStart').disabled = ps.length < 4;
+    const lead = leaderName();
+    $('hLeadNote').textContent = lead
+      ? lead + ' joined first, so they start the game from their phone' + (ps.length < 4 ? ' once ' + (4 - ps.length) + ' more join.' : '.')
+      : 'The first person to join starts the game from their phone.';
     const anyRecord = ps.some(p => p.all_games > 0);
     $('hRecordsLobbyPanel').hidden = !anyRecord;
     if (anyRecord) renderRecords($('hRecordsLobby'), ps);
@@ -996,28 +958,18 @@ function renderHost() {
   $('hRoster').innerHTML = rosterHTML(ps, null);
   const fp = S.from_players || 0;
   $('hLate').textContent = (fp ? 'This board has ' + fp + ' word' + (fp === 1 ? '' : 's') + ' from players and ' + (25 - fp) + ' extra' + (25 - fp === 1 ? '' : 's') + '. ' : '') +
-    'Late arrivals can join with code ' + S.code + ' and land on the smaller team.';
+    'Late arrivals can join with code ' + S.code + ' and land on the smaller team.' +
+    (leaderName() ? ' ' + leaderName() + ' starts the next game from their phone.' : '');
   renderLog($('hLog'), S);
   renderRecords($('hRecords'), ps);
-  $('hEnd').disabled = !S.clue_word || !!S.winner;
 }
-$('hStart').addEventListener('click', () => hostCall('open_word_round_v2', { p_host: ROOM.token, p_filler: hostFiller(), p_dare_filler: shuffle(DEFAULT_DARES), p_reshuffle: true }, $('hLobbyErr'), $('hStart')));
-$('hAgain').addEventListener('click', () => hostCall('open_word_round_v2', { p_host: ROOM.token, p_filler: hostFiller(), p_dare_filler: shuffle(DEFAULT_DARES), p_reshuffle: false }, $('hGameErr'), $('hAgain')));
-$('hShuffle').addEventListener('click', () => hostCall('open_word_round_v2', { p_host: ROOM.token, p_filler: hostFiller(), p_dare_filler: shuffle(DEFAULT_DARES), p_reshuffle: true }, $('hGameErr'), $('hShuffle')));
-$('hwrStart').addEventListener('click', () => hostCall('finish_word_round_v2', { p_host: ROOM.token }, $('hwrErr'), $('hwrStart')));
-$('hwrLobby').addEventListener('click', () => hostCall('back_to_lobby', { p_host: ROOM.token }, $('hwrErr'), $('hwrLobby')));
-$('hEnd').addEventListener('click', () => hostCall('end_turn_v2', { p_token: ROOM.token }, $('hGameErr'), $('hEnd')));
-$('hLobbyBtn').addEventListener('click', () => hostCall('back_to_lobby', { p_host: ROOM.token }, $('hGameErr'), $('hLobbyBtn')));
 $('hExit').addEventListener('click', () => { store.del(KEY_HOST); disconnect(); goHome(); });
 
 /* ---------- player ---------- */
 let sel = null, busy = false;
 function enterPlayer(p) {
   show('Player');
-  const testing = !!(testHost && testHost.code === p.code);
-  setUrl(testing ? { host: p.code } : { room: p.code });
-  $('pTestBar').hidden = !testing; $('pLeave').hidden = testing;
-  if (testing) renderTestBar(p.token);
+  setUrl({ room: p.code });
   $('pSeat').innerHTML = '<b>Joining ' + esc(p.code) + '…</b>';
   sel = null; busy = false;
   resetPrivateInputs();
@@ -1050,12 +1002,17 @@ function renderPlayer() {
     r.title = 'All-time ' + rec(myRow.all_wins, myRow.all_games);
     $('pSeat').appendChild(r);
   }
+  renderLead(me);
   const wordPhase = S.status === 'words';
   if (wordPhase && lastPhase !== 'words') { $('pwText').value = ''; $('pwDares').value = ''; pwEditing = false; updatePwCount(); }
   lastPhase = S.status;
   $('pLobby').hidden = !!playing || wordPhase; $('pGame').hidden = !playing; $('pWordRound').hidden = !wordPhase;
   if (wordPhase) { renderWordRound(me); $('pConfirm').hidden = true; return; }
   if (!playing) {
+    const ln = leaderName();
+    $('pWaitLead').textContent = me.id === S.leader_id
+      ? 'You joined first, so you start the game. Tap Start game above once at least 4 players are in.'
+      : 'Waiting for ' + (ln || 'the first player') + ' to start. You\'ll add your own words first, then teams and spymasters are picked automatically.';
     const list = $('pPlayers'); list.innerHTML = '';
     (S.players || []).forEach(p => { const li = document.createElement('li'); li.style.paddingRight = '14px'; li.textContent = p.name + (p.id === me.id ? ' (you)' : ''); list.appendChild(li); });
     $('pConfirm').hidden = true;
@@ -1084,6 +1041,11 @@ function renderPlayer() {
     act.innerHTML = '<div class="current-clue"><small>Waiting for ' + cap(S.turn) + "'s spymaster to give a clue · <span class=\"timer\" data-timer></span></small></div>";
   }
   renderDare($('pDare'), me);
+  if (S.current_dare && me.id === S.leader_id && $('pDare').firstChild) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = 'Dare done';
+    b.addEventListener('click', () => leadCall('dismiss_dare', { p_token: ROOM.token }, b));
+    $('pDare').firstChild.appendChild(b);
+  }
   maybeNickPopup(!!me.team && !!S.current_dare && me.team !== S.current_dare.team);
   $('pRoster').innerHTML = rosterHTML(S.players || [], me.id);
   renderLog($('pLog'), S);
@@ -1102,6 +1064,47 @@ function renderPlayer() {
   $('pNote').textContent = busy ? 'Sending…' : spy ? 'You can see the key. Keep your screen hidden from the other players.' : '';
   if (sel !== null) { $('pConfirmWord').textContent = S.words[sel]; $('pConfirm').hidden = false; } else $('pConfirm').hidden = true;
   tickTimers();
+}
+
+/* game controls for the player who joined first */
+let leadPhase = null;
+function renderLead(me) {
+  const lead = !!S.leader_id && me.id === S.leader_id;
+  $('pLead').hidden = !lead;
+  if (!lead) return;
+  const phase = S.status + (S.winner ? ':over' : '');
+  if (phase !== leadPhase) { $('pLead').open = S.status !== 'playing' || !!S.winner; leadPhase = phase; }
+  const n = (S.players || []).length, row = $('plRow');
+  row.innerHTML = '';
+  const add = (label, cls, fn, disabled) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + (cls || ''); b.textContent = label; b.disabled = !!disabled;
+    b.addEventListener('click', () => fn(b)); row.appendChild(b);
+  };
+  const deal = reshuffle => b => leadCall('open_word_round_v2', { p_host: ROOM.token, p_filler: hostFiller(), p_dare_filler: shuffle(DEFAULT_DARES), p_reshuffle: reshuffle }, b);
+  let hint = '';
+  if (S.status === 'lobby') {
+    add('Start game', 'go big', deal(true), n < 4);
+    add('Word list', '', () => openWords());
+    hint = n < 4 ? 'You need ' + (4 - n) + ' more player' + (4 - n === 1 ? '' : 's') + ' to start.' : 'Teams will be ' + Math.ceil(n / 2) + ' vs ' + Math.floor(n / 2) + '. Start opens the word round for everyone.';
+  } else if (S.status === 'words') {
+    add('Start now', 'go', b => leadCall('finish_word_round_v2', { p_host: ROOM.token }, b));
+    add('Back to lobby', '', b => leadCall('back_to_lobby', { p_host: ROOM.token }, b));
+    hint = 'The game starts on its own when everyone is done. Start now skips anyone still typing.';
+  } else {
+    add('New game, same teams', S.winner ? 'primary' : '', deal(false));
+    add('Reshuffle teams', '', deal(true));
+    add('Word list', '', () => openWords());
+    add('Back to lobby', '', b => leadCall('back_to_lobby', { p_host: ROOM.token }, b));
+    hint = 'Same teams passes the spymaster role to the next teammate. Your word list fills any spots players leave empty.';
+  }
+  $('plHint').textContent = hint;
+}
+async function leadCall(fn, args, btn) {
+  if (btn) btn.disabled = true;
+  $('plErr').textContent = '';
+  try { await rpc(fn, Object.assign({ p_code: ROOM.code }, args)); await refresh(); }
+  catch (e) { $('plErr').textContent = friendly(e); toast(friendly(e)); }
+  if (btn) btn.disabled = false;
 }
 
 /* clue composer (spymasters) */
@@ -1294,97 +1297,6 @@ document.addEventListener('keydown', e => {
   if (!$('nameGate').hidden) { if (ngMode === 'nick' && S && S.current_dare) ngDismissed = dareKey(S.current_dare); closeNameGate(); }
   if (sel !== null) { sel = null; renderPlayer(); }
 });
-
-/* ---------- test tools (host) ---------- */
-// The host can add test players and act as each one from this screen, so a whole game can be played alone.
-let testHost = null, ttOpened = false;
-const keyTest = code => 'codebams.test.' + code;
-function testSeats(code) { try { return JSON.parse(store.get(keyTest(code), '[]')) || []; } catch (e) { return []; } }
-function saveTestSeats(code, list) { store.set(keyTest(code), JSON.stringify(list)); }
-function seatLabel(seat) {
-  const p = S && (S.players || []).find(x => x.id === seat.id);
-  if (!p) return seat.name;
-  return p.team ? seat.name + ' · ' + cap(p.team) + ' ' + (p.role === 'spymaster' ? 'spymaster' : 'op') : seat.name;
-}
-function renderTestTools() {
-  if (!ROOM || ROOM.as !== 'host') return;
-  // Forget seats that were removed from the room.
-  const ids = new Set((S.players || []).map(p => p.id));
-  const seats = testSeats(ROOM.code).filter(t => ids.has(t.id));
-  saveTestSeats(ROOM.code, seats);
-  const box = $('ttSeats'); box.innerHTML = '';
-  if (!seats.length) box.innerHTML = '<span class="hint">No test players yet.</span>';
-  seats.forEach(t => {
-    const p = (S.players || []).find(x => x.id === t.id);
-    const b = document.createElement('button'); b.type = 'button';
-    b.className = 'btn' + (p && p.team ? ' ' + p.team : '');
-    b.textContent = seatLabel(t);
-    b.addEventListener('click', () => actAs(t));
-    box.appendChild(b);
-  });
-  $('ttRemove').disabled = !seats.length;
-  $('ttAdd').disabled = (S.players || []).length >= 26;
-  $('ttWordRow').hidden = S.status !== 'words' || !seats.length;
-  // Forcing a winner is only for test games (the server enforces this too).
-  const testGame = (S.players || []).some(p => p.is_test);
-  $('ttEndRow').hidden = !testGame;
-  const canEnd = testGame && S.status === 'playing' && !S.winner;
-  $('ttRed').disabled = !canEnd; $('ttBlue').disabled = !canEnd;
-  if (testGame && !ttOpened) { $('hTest').open = true; ttOpened = true; }
-}
-function actAs(seat) {
-  if (!ROOM || ROOM.as !== 'host') return;
-  let host = null; try { host = JSON.parse(store.get(KEY_HOST, 'null')); } catch (e) {}
-  if (!host || host.code !== ROOM.code) return;
-  testHost = host;
-  enterPlayer({ code: host.code, token: seat.token });
-}
-function renderTestBar(token) {
-  const seats = testSeats(testHost.code);
-  const cur = seats.find(t => t.token === token);
-  $('ptbName').textContent = cur ? cur.name : 'a test player';
-  const box = $('ptbSeats'); box.innerHTML = '';
-  seats.forEach(t => {
-    const b = document.createElement('button'); b.type = 'button';
-    b.className = 'btn' + (t.token === token ? ' cur' : '');
-    b.textContent = t.name;
-    b.addEventListener('click', () => { if (t.token !== token) enterPlayer({ code: testHost.code, token: t.token }); });
-    box.appendChild(b);
-  });
-}
-$('ptbBack').addEventListener('click', () => { const h = testHost; testHost = null; if (h) enterHost(h); });
-$('hTestGame').addEventListener('click', () => {
-  $('hTest').open = true; ttOpened = true;
-  $('ttAdd').click();
-  $('hTest').scrollIntoView({ behavior: 'smooth', block: 'start' });
-});
-$('ttAdd').addEventListener('click', async () => {
-  const code = ROOM.code, b = $('ttAdd'); b.disabled = true; $('ttErr').textContent = '';
-  const seats = testSeats(code);
-  try {
-    // Server-side: only the room's host token can create test players.
-    const added = await rpc('add_test_players', { p_code: code, p_host: ROOM.token, p_count: 4 });
-    (added || []).forEach(t => seats.push({ name: t.name, token: t.token, id: t.id }));
-    saveTestSeats(code, seats);
-  } catch (e) { $('ttErr').textContent = friendly(e); }
-  await refresh(); b.disabled = false;
-});
-$('ttRemove').addEventListener('click', async () => {
-  const code = ROOM.code; $('ttErr').textContent = '';
-  for (const t of testSeats(code)) { try { await rpc('kick_player', { p_code: code, p_host: ROOM.token, p_player: t.id }); } catch (e) {} }
-  saveTestSeats(code, []); refresh();
-});
-$('ttSkip').addEventListener('click', async () => {
-  const code = ROOM.code; $('ttErr').textContent = '';
-  for (const t of testSeats(code)) {
-    const p = (S.players || []).find(x => x.id === t.id);
-    if (p && p.done) continue;
-    try { await rpc('submit_words_v2', { p_code: code, p_token: t.token, p_words: [], p_dares: [] }); } catch (e) { $('ttErr').textContent = friendly(e); }
-  }
-  refresh();
-});
-$('ttRed').addEventListener('click', () => hostCall('host_end_game', { p_host: ROOM.token, p_winner: 'red' }, $('ttErr'), $('ttRed')));
-$('ttBlue').addEventListener('click', () => hostCall('host_end_game', { p_host: ROOM.token, p_winner: 'blue' }, $('ttErr'), $('ttBlue')));
 
 /* ---------- boot ---------- */
 (function boot() {
