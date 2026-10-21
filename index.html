@@ -34,11 +34,15 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body {
+  transition: background-color .6s ease;
   background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-top: calc(20px + env(safe-area-inset-top, 0px)); padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
 }
 [hidden] { display: none !important; }
+/* A light wash of the acting team's color over the whole screen. */
+body[data-tint="red"] { background: color-mix(in srgb, var(--red) 10%, var(--bg)); }
+body[data-tint="blue"] { background: color-mix(in srgb, var(--blue) 10%, var(--bg)); }
 button, input, textarea, select { font: inherit; color: inherit; }
 button { cursor: pointer; } button:disabled { cursor: default; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
@@ -90,8 +94,20 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 #jCode { text-transform: uppercase; font-family: var(--font-mono); letter-spacing: .3em; font-size: 20px; }
 
 /* status + board */
-.status { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+.status { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; transition: background-color .5s ease; }
 .team { display: flex; align-items: baseline; gap: 10px; } .team.blue { justify-content: flex-end; }
+/* The band fills with the color of whoever is acting; each team's cards-left count sits in its own framed box. */
+.status.band { border: 0; color: var(--on-team); padding: 12px; }
+.status.band.red { background: var(--red); } .status.band.blue { background: var(--blue); }
+.status.band .team { justify-self: start; }
+.status.band .team.blue { justify-self: end; }
+.status.band .tally { display: inline-flex; align-items: baseline; gap: 8px; background: var(--surface); color: var(--ink); border: 3px solid var(--surface); box-shadow: inset 0 0 0 2px var(--line); border-radius: 10px; padding: 6px 12px; }
+.status.band .tally .label { color: var(--muted); }
+.status.band .phase { font-family: var(--font-display); font-weight: 900; font-size: clamp(1.6rem, 3.6vw, 2.6rem); line-height: 1; text-transform: uppercase; letter-spacing: .03em; }
+.status.band .turn-sub { color: rgba(255,255,255,.88); }
+.status.band.compact .phase { font-size: 1.6rem; }
+.status.band.compact .count { font-size: 1.7rem; }
+.status.band.compact .tally { padding: 4px 9px; }
 .count { font-family: var(--font-display); font-weight: 900; font-size: 2.4rem; line-height: 1; font-variant-numeric: tabular-nums; }
 .team.red .count { color: var(--red); } .team.blue .count { color: var(--blue); }
 .turn { text-align: center; }
@@ -127,7 +143,26 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .board.phone { gap: 5px; }
 .board.phone .card { aspect-ratio: 1.25; font-size: clamp(9px, 2.9vw, 14px); border-radius: 6px; border-bottom-width: 3px; }
 .board.phone .card::before { display: none; }
-@media (prefers-reduced-motion: reduce) { .card { transition: none; } .card.can:hover, .card.sel { transform: none; } }
+/* Reveal: the card lifts, glows and settles. A bomb lifts higher, shakes and flares red. */
+@keyframes lift {
+  0% { transform: none; }
+  30% { transform: translateY(-16px) scale(1.14); box-shadow: 0 18px 34px rgba(0,0,0,.35), 0 0 0 4px var(--focus); }
+  70% { transform: translateY(-10px) scale(1.08); box-shadow: 0 12px 26px rgba(0,0,0,.3), 0 0 0 4px var(--focus); }
+  100% { transform: translateY(-3px); }
+}
+@keyframes boom {
+  0% { transform: none; }
+  18% { transform: translateY(-20px) scale(1.22) rotate(-4deg); box-shadow: 0 0 0 6px var(--red), 0 0 46px 14px var(--red); }
+  30% { transform: translateY(-20px) scale(1.22) rotate(4deg); }
+  42% { transform: translateY(-18px) scale(1.2) rotate(-3deg); }
+  54% { transform: translateY(-18px) scale(1.2) rotate(2deg); box-shadow: 0 0 0 6px var(--red), 0 0 36px 10px var(--red); }
+  100% { transform: translateY(-3px); }
+}
+.card.just { animation: lift 1.2s cubic-bezier(.2,.8,.2,1) both; z-index: 3; }
+.card.just.k-bomb { animation: boom 1.6s cubic-bezier(.2,.8,.2,1) both; }
+.card.last { transform: translateY(-3px); box-shadow: 0 8px 18px rgba(0,0,0,.28), 0 0 0 3px var(--focus); z-index: 2; }
+.card.last.k-bomb { box-shadow: 0 8px 18px rgba(0,0,0,.3), 0 0 0 3px var(--red), 0 0 18px 4px var(--red); }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } .card.can:hover, .card.sel { transform: none; } .card.just, .card.just.k-bomb { animation: none; } .card.last { transform: none; } }
 
 .clue-form { display: flex; gap: 8px; flex-wrap: wrap; }
 #pcWord, .clue-form input { flex: 1 1 140px; min-width: 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); text-transform: uppercase; font-family: var(--font-card); font-weight: 700; letter-spacing: .05em; }
@@ -425,6 +460,7 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
       <div class="panel" id="pAction"></div>
       <main class="board phone" id="pBoard" aria-label="Agent grid"></main>
       <p class="hint" id="pNote"></p>
+      <div class="panel"><h2>Past clues</h2><ul class="log" id="pLog"></ul></div>
       <div class="panel"><h2>Teams</h2><div class="roster" id="pRoster"></div></div>
     </div>
   </section>
@@ -635,38 +671,65 @@ function totals(S) {
 }
 function left(S, team) { return totals(S)[team] - (S.revealed_keys || []).filter(k => k === team).length; }
 function renderBoard(el, S, o) {
-  el.innerHTML = '';
+  // Cards are updated in place so a reveal animation keeps playing through later renders.
+  const sig = S.code + '|' + S.round + '|' + S.words.join('|');
+  if (el._sig !== sig || el.children.length !== S.words.length) {
+    el._sig = sig; el._prev = S.revealed.slice(); el._last = null; el.innerHTML = '';
+    S.words.forEach(() => {
+      const b = document.createElement('button'); b.type = 'button';
+      b.innerHTML = '<span class="w"></span>';
+      b.addEventListener('animationend', () => b.classList.remove('just'));
+      el.appendChild(b);
+    });
+  }
+  const fresh = new Set();
+  S.revealed.forEach((r, i) => { if (r && !el._prev[i]) fresh.add(i); });
+  if (fresh.size) el._last = [...fresh].pop();
+  el._prev = S.revealed.slice();
   S.words.forEach((w, i) => {
-    const b = document.createElement('button');
-    b.type = 'button';
+    const b = el.children[i];
     const k = keyAt(S, i), rev = S.revealed[i], can = !!(o.can && o.can(i));
-    b.className = 'card k-' + k + (rev ? ' rev' : '') + (S.keys ? ' key' : '') + (can ? ' can' : '') + (o.sel === i ? ' sel' : '') + (o.aim && o.aim.has(i) ? ' aim' : '');
+    const just = fresh.has(i) || b.classList.contains('just');
+    b.className = 'card k-' + k + (rev ? ' rev' : '') + (S.keys ? ' key' : '') + (can ? ' can' : '') + (o.sel === i ? ' sel' : '') +
+      (o.aim && o.aim.has(i) ? ' aim' : '') + (just ? ' just' : '') + (rev && el._last === i ? ' last' : '');
     b.disabled = !can;
-    b.innerHTML = '<span class="w"></span>';
-    b.firstChild.textContent = w;
+    if (b.firstChild.textContent !== w) b.firstChild.textContent = w;
     b.setAttribute('aria-label', w + ((rev || S.keys) && k !== 'hidden' ? ' (' + (k === 'neutral' ? 'bystander' : k) + (rev ? ', revealed' : '') + ')' : ''));
-    if (can) b.addEventListener('click', () => o.onPick(i));
-    el.appendChild(b);
+    b.onclick = can ? () => o.onPick(i) : null;
   });
 }
-function statusHTML(S, sub) {
-  const pill = S.winner ? '<span class="turn-pill ' + S.winner + '">' + cap(S.winner) + ' wins</span>' : '<span class="turn-pill ' + S.turn + '">' + cap(S.turn) + "'s turn</span>";
-  return '<div class="status"><div class="team red"><span class="count">' + left(S, 'red') + '</span><span class="label">Red left</span></div>' +
-    '<div class="turn">' + pill + '<div class="turn-sub">' + esc(sub) + '</div></div>' +
-    '<div class="team blue"><span class="label">Blue left</span><span class="count">' + left(S, 'blue') + '</span></div></div>';
+function phaseLabel(S) {
+  if (S.winner) return cap(S.winner) + ' wins';
+  return cap(S.turn) + (S.clue_word ? "'s guess" : "'s hint");
+}
+function statusHTML(S, sub, compact) {
+  const team = S.winner || S.turn;
+  return '<div class="status band ' + team + (compact ? ' compact' : '') + '">' +
+    '<div class="team red"><span class="tally"><span class="count">' + left(S, 'red') + '</span><span class="label">Red left</span></span></div>' +
+    '<div class="turn"><div class="phase">' + phaseLabel(S) + '</div><div class="turn-sub">' + esc(sub) + '</div></div>' +
+    '<div class="team blue"><span class="tally"><span class="label">Blue left</span><span class="count">' + left(S, 'blue') + '</span></span></div></div>';
+}
+function setTint(S) {
+  const t = S && S.status === 'playing' ? (S.winner || S.turn) : '';
+  if (document.body.dataset.tint !== (t || '')) document.body.dataset.tint = t || '';
 }
 function guessHint(S) { return !S.clue_word ? '' : S.guesses_left === -1 ? 'Unlimited guesses' : S.guesses_left + ' guess' + (S.guesses_left === 1 ? '' : 'es') + ' left'; }
 function clueLabel(S) { return S.clue_num === 'inf' ? '∞' : S.clue_num; }
 function renderLog(el, S) {
   el.innerHTML = '';
-  const items = (S.log || []).slice().reverse();
-  if (!items.length) { el.innerHTML = '<li class="muted">No clues yet.</li>'; return; }
-  items.forEach(e => {
+  // Group each clue with the guesses made on it, then show the newest clue first.
+  const groups = [];
+  (S.log || []).forEach(e => {
+    if (e.g && groups.length) groups[groups.length - 1].push(e);
+    else groups.push([e]);
+  });
+  if (!groups.length) { el.innerHTML = '<li class="muted">No clues yet.</li>'; return; }
+  groups.reverse().forEach(g => g.forEach(e => {
     const li = document.createElement('li');
     if (e.g) li.className = 'g'; else li.innerHTML = '<span class="dot ' + (e.t === 'blue' ? 'blue' : 'red') + '"></span>';
     li.appendChild(document.createTextNode(e.s + (e.by && !e.g ? ' · ' + e.by : '')));
     el.appendChild(li);
-  });
+  }));
 }
 
 /* ---------- connection to a room ---------- */
@@ -719,11 +782,11 @@ async function refresh() {
   fetching = false;
   if (fetchAgain) { fetchAgain = false; refresh(); }
 }
-function render() { if (!S || !ROOM) return; if (ROOM.as === 'host') renderHost(); else renderPlayer(); }
+function render() { if (!S || !ROOM) return; setTint(S); if (ROOM.as === 'host') renderHost(); else renderPlayer(); }
 
 /* ---------- home ---------- */
 function goHome(note) {
-  show('Home'); setUrl({});
+  show('Home'); setUrl({}); setTint(null);
   $('homeNote').hidden = !note; $('homeNote').textContent = note || '';
   let host = null; try { host = JSON.parse(store.get(KEY_HOST, 'null')); } catch (e) {}
   $('hResume').hidden = !host;
@@ -931,9 +994,7 @@ function renderPlayer() {
   const mine = !S.winner && S.turn === me.team;
   $('pRole').innerHTML = S.log && S.log.length ? '' : '<div class="role-card ' + me.team + '"><span>You are on</span><b>' + cap(me.team) + ' · ' + (spy ? 'Spymaster' : 'Operative') + '</b><span>' + (spy ? 'Only you can see the colors. Pick the cards you want your team to find and give a one-word clue.' : 'Guess the words your spymaster is hinting at.') + '</span></div>';
   const sub = S.winner ? (S.win_reason || '') : mine ? (spy ? (S.clue_word ? 'Your operatives are guessing.' : 'Your turn: give a clue.') : (S.clue_word ? 'Your turn: tap a card to guess.' : 'Waiting for your spymaster.')) : 'Waiting for ' + cap(S.turn) + '.';
-  $('pStatus').innerHTML = '<div class="pstatus"><span class="count" style="color:var(--red)">' + left(S, 'red') + '</span><div style="text-align:center;min-width:0">' +
-    (S.winner ? '<span class="turn-pill ' + S.winner + '">' + cap(S.winner) + ' wins</span>' : '<span class="turn-pill ' + S.turn + '">' + cap(S.turn) + "'s turn</span>") +
-    '<div class="turn-sub' + (mine ? ' yourturn' : '') + '">' + esc(sub) + '</div></div><span class="count" style="color:var(--blue)">' + left(S, 'blue') + '</span></div>';
+  $('pStatus').innerHTML = statusHTML(S, sub, true);
 
   const act = $('pAction');
   // Spymasters compose whenever their team has no clue in play: on their own turn to send it,
@@ -953,6 +1014,7 @@ function renderPlayer() {
   }
   renderDare($('pDare'), me);
   $('pRoster').innerHTML = rosterHTML(S.players || [], me.id);
+  renderLog($('pLog'), S);
 
   const canGuess = !spy && mine && !!S.clue_word && !busy;
   if (sel !== null && (!canGuess || S.revealed[sel])) sel = null;
