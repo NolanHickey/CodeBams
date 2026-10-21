@@ -502,6 +502,7 @@ function parseDares(text) {
 const ERRORS = {
   time_up: 'Time ran out for that clue. The turn passed to the other team.',
   pick_targets: 'Tap the cards your clue is aimed at, between 1 and 9 of your team\'s cards.',
+  bad_count: 'You can add between 1 and 8 test players at a time.',
   bad_winner: 'Pick Red or Blue as the winner.',
   bad_targets: 'You can only aim at your own team\'s cards that are still face down.',
   room_not_found: "There's no room with that code. Check the code on the big screen.",
@@ -813,7 +814,7 @@ function renderHost() {
     if (!ps.length) list.innerHTML = '<li class="muted" style="padding:5px 14px">Nobody yet. Scan the code to join.</li>';
     ps.forEach(p => {
       const li = document.createElement('li');
-      li.appendChild(document.createTextNode(p.name));
+      li.appendChild(document.createTextNode(p.name + (p.is_test ? ' (test)' : '')));
       const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.title = 'Remove ' + p.name; x.setAttribute('aria-label', 'Remove ' + p.name);
       x.addEventListener('click', () => hostCall('kick_player', { p_host: ROOM.token, p_player: p.id }, $('hLobbyErr')));
       li.appendChild(x); list.appendChild(li);
@@ -851,7 +852,7 @@ function renderHost() {
   $('hGuess').textContent = guessHint(S);
   const col = t => {
     const items = ps.filter(p => p.team === t).sort((a, b) => (a.role === 'spymaster' ? -1 : 1) - (b.role === 'spymaster' ? -1 : 1))
-      .map(p => '<li><span>' + esc(p.name) + '</span><span class="role">' + (p.role === 'spymaster' ? 'Spymaster' : 'Op') + '</span></li>').join('');
+      .map(p => '<li><span>' + esc(p.name) + (p.is_test ? ' (test)' : '') + '</span><span class="role">' + (p.role === 'spymaster' ? 'Spymaster' : 'Op') + '</span></li>').join('');
     return '<div class="' + t + '"><h3>' + cap(t) + '</h3><ul>' + (items || '<li class="muted">Nobody</li>') + '</ul></div>';
   };
   $('hRoster').innerHTML = col('red') + col('blue');
@@ -1123,8 +1124,9 @@ function renderTestTools() {
   $('ttRed').disabled = !canEnd; $('ttBlue').disabled = !canEnd;
 }
 function actAs(seat) {
+  if (!ROOM || ROOM.as !== 'host') return;
   let host = null; try { host = JSON.parse(store.get(KEY_HOST, 'null')); } catch (e) {}
-  if (!host) return;
+  if (!host || host.code !== ROOM.code) return;
   testHost = host;
   enterPlayer({ code: host.code, token: seat.token });
 }
@@ -1146,12 +1148,10 @@ $('ttAdd').addEventListener('click', async () => {
   const code = ROOM.code, b = $('ttAdd'); b.disabled = true; $('ttErr').textContent = '';
   const seats = testSeats(code);
   try {
-    for (let i = 0; i < 4; i++) {
-      const name = 'Test ' + (seats.length + 1);
-      const r = await rpc('join_room', { p_code: code, p_name: name, p_device: null });
-      seats.push({ name, token: r.token, id: r.player_id });
-      saveTestSeats(code, seats);
-    }
+    // Server-side: only the room's host token can create test players.
+    const added = await rpc('add_test_players', { p_code: code, p_host: ROOM.token, p_count: 4 });
+    (added || []).forEach(t => seats.push({ name: t.name, token: t.token, id: t.id }));
+    saveTestSeats(code, seats);
   } catch (e) { $('ttErr').textContent = friendly(e); }
   await refresh(); b.disabled = false;
 });
