@@ -283,8 +283,10 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
         <div class="row">
           <button class="btn go big" type="button" id="hStart" disabled>Start game</button>
           <button class="btn" type="button" id="hWordsLobby">Word list</button>
+          <button class="btn" type="button" id="hTestGame">Test game</button>
           <button class="btn" type="button" id="hExit">Close room</button>
         </div>
+        <p class="hint">Test game adds 4 test players you can play from this screen, so you can try everything without phones.</p>
         <p class="hint">Start opens the word round: everyone adds words on their phone. Then the players are split into two even teams with a random spymaster each. Only spymasters see the key.</p>
         <p class="err" id="hLobbyErr"></p>
       </div>
@@ -351,14 +353,14 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
       <div class="row" id="ttWordRow" hidden>
         <button class="btn" type="button" id="ttSkip">Mark test players done with the word round</button>
       </div>
-      <div>
-        <div class="label" style="margin-bottom:6px">End the current game</div>
+      <div id="ttEndRow" hidden>
+        <div class="label" style="margin-bottom:6px">End the test game</div>
         <div class="row">
           <button class="btn red" type="button" id="ttRed">Red wins</button>
           <button class="btn blue" type="button" id="ttBlue">Blue wins</button>
         </div>
       </div>
-      <p class="hint">Test players have no phone, so their games never count toward all-time records. Ending a game here never counts toward anyone's record.</p>
+      <p class="hint">Ending a game early only works while test players are in the room, so it can't be used in real games. Test players never get records.</p>
       <p class="err" id="ttErr"></p>
     </div>
   </details>
@@ -503,6 +505,7 @@ const ERRORS = {
   time_up: 'Time ran out for that clue. The turn passed to the other team.',
   pick_targets: 'Tap the cards your clue is aimed at, between 1 and 9 of your team\'s cards.',
   bad_count: 'You can add between 1 and 8 test players at a time.',
+  test_games_only: 'Ending a game early only works in test games (with test players in the room).',
   bad_winner: 'Pick Red or Blue as the winner.',
   bad_targets: 'You can only aim at your own team\'s cards that are still face down.',
   room_not_found: "There's no room with that code. Check the code on the big screen.",
@@ -1092,7 +1095,7 @@ document.addEventListener('keydown', e => {
 
 /* ---------- test tools (host) ---------- */
 // The host can add test players and act as each one from this screen, so a whole game can be played alone.
-let testHost = null;
+let testHost = null, ttOpened = false;
 const keyTest = code => 'codebams.test.' + code;
 function testSeats(code) { try { return JSON.parse(store.get(keyTest(code), '[]')) || []; } catch (e) { return []; } }
 function saveTestSeats(code, list) { store.set(keyTest(code), JSON.stringify(list)); }
@@ -1120,8 +1123,12 @@ function renderTestTools() {
   $('ttRemove').disabled = !seats.length;
   $('ttAdd').disabled = (S.players || []).length >= 26;
   $('ttWordRow').hidden = S.status !== 'words' || !seats.length;
-  const canEnd = S.status === 'playing' && !S.winner;
+  // Forcing a winner is only for test games (the server enforces this too).
+  const testGame = (S.players || []).some(p => p.is_test);
+  $('ttEndRow').hidden = !testGame;
+  const canEnd = testGame && S.status === 'playing' && !S.winner;
   $('ttRed').disabled = !canEnd; $('ttBlue').disabled = !canEnd;
+  if (testGame && !ttOpened) { $('hTest').open = true; ttOpened = true; }
 }
 function actAs(seat) {
   if (!ROOM || ROOM.as !== 'host') return;
@@ -1144,6 +1151,11 @@ function renderTestBar(token) {
   });
 }
 $('ptbBack').addEventListener('click', () => { const h = testHost; testHost = null; if (h) enterHost(h); });
+$('hTestGame').addEventListener('click', () => {
+  $('hTest').open = true; ttOpened = true;
+  $('ttAdd').click();
+  $('hTest').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
 $('ttAdd').addEventListener('click', async () => {
   const code = ROOM.code, b = $('ttAdd'); b.disabled = true; $('ttErr').textContent = '';
   const seats = testSeats(code);
