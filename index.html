@@ -148,20 +148,24 @@ header.top { display: flex; align-items: center; justify-content: space-between;
   0% { transform: none; }
   30% { transform: translateY(-16px) scale(1.14); box-shadow: 0 18px 34px rgba(0,0,0,.35), 0 0 0 4px var(--focus); }
   70% { transform: translateY(-10px) scale(1.08); box-shadow: 0 12px 26px rgba(0,0,0,.3), 0 0 0 4px var(--focus); }
-  100% { transform: translateY(-3px); }
+  100% { transform: translateY(-4px); }
 }
 @keyframes boom {
   0% { transform: none; }
-  18% { transform: translateY(-20px) scale(1.22) rotate(-4deg); box-shadow: 0 0 0 6px var(--red), 0 0 46px 14px var(--red); }
-  30% { transform: translateY(-20px) scale(1.22) rotate(4deg); }
-  42% { transform: translateY(-18px) scale(1.2) rotate(-3deg); }
-  54% { transform: translateY(-18px) scale(1.2) rotate(2deg); box-shadow: 0 0 0 6px var(--red), 0 0 36px 10px var(--red); }
-  100% { transform: translateY(-3px); }
+  18% { transform: translateY(-20px) scale(1.22) rotate(-4deg); box-shadow: 0 0 0 6px #ffd23f, 0 0 46px 16px var(--red); }
+  30% { transform: translateY(-20px) scale(1.22) rotate(4deg); box-shadow: 0 0 0 6px var(--red), 0 0 52px 18px #ffb703; }
+  42% { transform: translateY(-18px) scale(1.2) rotate(-3deg); box-shadow: 0 0 0 6px #ffd23f, 0 0 46px 16px var(--red); }
+  54% { transform: translateY(-18px) scale(1.2) rotate(2deg); box-shadow: 0 0 0 6px var(--red), 0 0 40px 12px #ffb703; }
+  100% { transform: translateY(-4px); }
 }
 .card.just { animation: lift 1.2s cubic-bezier(.2,.8,.2,1) both; z-index: 3; }
 .card.just.k-bomb { animation: boom 1.6s cubic-bezier(.2,.8,.2,1) both; }
-.card.last { transform: translateY(-3px); box-shadow: 0 8px 18px rgba(0,0,0,.28), 0 0 0 3px var(--focus); z-index: 2; }
-.card.last.k-bomb { box-shadow: 0 8px 18px rgba(0,0,0,.3), 0 0 0 3px var(--red), 0 0 18px 4px var(--red); }
+/* The latest reveal stays a little raised; its ring shows for a few seconds, then fades. */
+.card.last { transform: translateY(-4px); box-shadow: 0 8px 18px rgba(0,0,0,.28); z-index: 2; transition: transform .12s ease, background-color .25s ease, color .25s ease, box-shadow .8s ease; }
+.card.last.ring { box-shadow: 0 8px 18px rgba(0,0,0,.28), 0 0 0 3px var(--focus); }
+.card.last.k-bomb.ring { box-shadow: 0 8px 18px rgba(0,0,0,.3), 0 0 0 3px #ffd23f, 0 0 20px 6px var(--red); }
+.card.last .w { color: var(--blue); background: var(--surface); padding: 2px 6px; border-radius: 4px; opacity: 1; text-decoration: none; }
+.card.last.k-bomb .w::after { color: var(--red); }
 @media (prefers-reduced-motion: reduce) { .card { transition: none; } .card.can:hover, .card.sel { transform: none; } .card.just, .card.just.k-bomb { animation: none; } .card.last { transform: none; } }
 
 .clue-form { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -215,11 +219,31 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .timer.low { color: var(--red); }
 .bigtimer { font-family: var(--font-display); font-weight: 900; font-size: 3.2rem; line-height: 1; font-variant-numeric: tabular-nums; }
 .bigtimer.low { color: var(--red); }
-.dare { border-radius: 12px; padding: 16px 18px; background: var(--assassin); color: #f2f2ee; display: flex; flex-direction: column; gap: 8px; border: 3px dashed var(--red); }
-.dare .dare-head { font-family: var(--font-display); font-weight: 900; font-size: 1.9rem; text-transform: uppercase; line-height: 1; color: #ff8d80; }
+/* Bomb banner: red and yellow hazard stripes around a dark panel, with a glowing title. */
+.dare { position: relative; border-radius: 14px; padding: 18px 20px; color: #f7f3e8; display: flex; flex-direction: column; gap: 8px;
+  border: 8px solid transparent;
+  background: linear-gradient(160deg, #2a0f0c, #120807) padding-box,
+              repeating-linear-gradient(135deg, #ffd23f 0 16px, #d62828 16px 32px) border-box;
+  box-shadow: 0 0 0 2px #120807, 0 12px 40px rgba(214, 40, 40, .45);
+  animation: dareIn .9s cubic-bezier(.2,.8,.2,1) both, dareGlow 2.4s ease-in-out .9s infinite; }
+.dare .dare-head { font-family: var(--font-display); font-weight: 900; font-size: clamp(2rem, 5vw, 3.4rem); text-transform: uppercase; line-height: .95; letter-spacing: .04em;
+  color: #ffd23f; text-shadow: 3px 3px 0 #d62828, 0 0 18px rgba(255, 183, 3, .7); }
+.dare .dare-sub { color: #ffcf8a; font-weight: 600; }
+@keyframes dareIn {
+  0% { transform: scale(.85); opacity: 0; }
+  40% { transform: scale(1.04) rotate(-1deg); opacity: 1; }
+  55% { transform: scale(1.02) rotate(1deg); }
+  70% { transform: scale(1.01) rotate(-.5deg); }
+  100% { transform: none; }
+}
+@keyframes dareGlow {
+  0%, 100% { box-shadow: 0 0 0 2px #120807, 0 12px 40px rgba(214, 40, 40, .45); }
+  50% { box-shadow: 0 0 0 2px #120807, 0 12px 54px rgba(255, 183, 3, .6); }
+}
+@media (prefers-reduced-motion: reduce) { .dare { animation: none; } }
 .dare .dare-text { font-size: 1.25rem; font-weight: 600; line-height: 1.35; text-wrap: balance; }
 .screen .dare .dare-text { font-size: clamp(1.4rem, 2.4vw, 2.2rem); }
-.dare .btn { align-self: flex-start; background: #f2f2ee; color: #16181a; border-color: #f2f2ee; }
+.dare .btn { align-self: flex-start; background: #ffd23f; color: #16181a; border-color: #ffd23f; font-weight: 700; }
 .aimlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
 .aimlist li { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .aimlist b { font-family: var(--font-card); text-transform: uppercase; letter-spacing: .04em; }
@@ -684,14 +708,19 @@ function renderBoard(el, S, o) {
   }
   const fresh = new Set();
   S.revealed.forEach((r, i) => { if (r && !el._prev[i]) fresh.add(i); });
-  if (fresh.size) el._last = [...fresh].pop();
+  if (fresh.size) {
+    const idx = [...fresh].pop();
+    el._last = idx; el._ring = true;
+    clearTimeout(el._ringTimer);
+    el._ringTimer = setTimeout(() => { if (el._last === idx) { el._ring = false; const c = el.children[idx]; if (c) c.classList.remove('ring'); } }, 3000);
+  }
   el._prev = S.revealed.slice();
   S.words.forEach((w, i) => {
     const b = el.children[i];
     const k = keyAt(S, i), rev = S.revealed[i], can = !!(o.can && o.can(i));
     const just = fresh.has(i) || b.classList.contains('just');
     b.className = 'card k-' + k + (rev ? ' rev' : '') + (S.keys ? ' key' : '') + (can ? ' can' : '') + (o.sel === i ? ' sel' : '') +
-      (o.aim && o.aim.has(i) ? ' aim' : '') + (just ? ' just' : '') + (rev && el._last === i ? ' last' : '');
+      (o.aim && o.aim.has(i) ? ' aim' : '') + (just ? ' just' : '') + (rev && el._last === i ? ' last' + (el._ring ? ' ring' : '') : '');
     b.disabled = !can;
     if (b.firstChild.textContent !== w) b.firstChild.textContent = w;
     b.setAttribute('aria-label', w + ((rev || S.keys) && k !== 'hidden' ? ' (' + (k === 'neutral' ? 'bystander' : k) + (rev ? ', revealed' : '') + ')' : ''));
