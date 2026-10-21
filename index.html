@@ -97,14 +97,20 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .card.key.k-blue { background: var(--blue-soft); border-color: var(--blue); }
 .card.key.k-neutral { background: var(--neutral-soft); border-color: var(--neutral); }
 .card.key.k-assassin { background: var(--assassin); color: #f2f2ee; border-color: var(--assassin); }
+.card.key.k-bomb { background: var(--assassin); color: #f2f2ee; border-color: var(--red); border-style: dashed; }
 .card.rev { color: var(--on-team); border-color: transparent; }
 .card.rev.k-red { background: var(--red); } .card.rev.k-blue { background: var(--blue); }
 .card.rev.k-neutral { background: var(--neutral); color: #2a2418; }
 .card.rev.k-assassin { background: var(--assassin); color: #f2f2ee; }
+.card.rev.k-bomb { background: var(--assassin); color: #f2f2ee; box-shadow: inset 0 0 0 3px var(--red); }
+.card.rev.k-bomb .w::after { content: ' · bomb'; font-size: .7em; letter-spacing: .08em; color: var(--red); text-decoration: none; display: inline-block; }
 .card.rev::before { background: rgba(255,255,255,.45); }
 .card.key.rev { opacity: .45; }
 .card.rev .w { text-decoration: line-through; text-decoration-thickness: 2px; opacity: .85; }
 .card.sel { outline: 3px solid var(--focus); outline-offset: 1px; transform: translateY(-2px); }
+.card.aim { outline: 3px solid var(--focus); outline-offset: 1px; }
+.card.aim::after { content: ""; position: absolute; top: 4px; right: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--focus); }
+.board.phone .card.aim::after { top: 3px; right: 3px; width: 8px; height: 8px; }
 .board.big .card { font-size: clamp(12px, 1.7vw, 30px); border-radius: 10px; }
 .board.phone { gap: 5px; }
 .board.phone .card { aspect-ratio: 1.25; font-size: clamp(9px, 2.9vw, 14px); border-radius: 6px; border-bottom-width: 3px; }
@@ -112,7 +118,7 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 @media (prefers-reduced-motion: reduce) { .card { transition: none; } .card.can:hover, .card.sel { transform: none; } }
 
 .clue-form { display: flex; gap: 8px; flex-wrap: wrap; }
-.clue-form input { flex: 1 1 140px; min-width: 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); text-transform: uppercase; font-family: var(--font-card); font-weight: 700; letter-spacing: .05em; }
+#pcWord, .clue-form input { flex: 1 1 140px; min-width: 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); text-transform: uppercase; font-family: var(--font-card); font-weight: 700; letter-spacing: .05em; }
 .clue-form select { padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); }
 .current-clue { font-family: var(--font-card); font-weight: 700; font-size: 1.5rem; text-transform: uppercase; letter-spacing: .04em; line-height: 1.2; overflow-wrap: anywhere; }
 .current-clue small { font-family: var(--font-body); font-weight: 500; text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--muted); display: block; }
@@ -157,6 +163,21 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .wr-list li.done .st { color: var(--ok); }
 #pwText { min-height: 150px; font-family: var(--font-body); font-size: 15px; }
 .rec-wrap { overflow-x: auto; }
+.timer { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 500; }
+.timer.low { color: var(--red); }
+.bigtimer { font-family: var(--font-display); font-weight: 900; font-size: 3.2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.bigtimer.low { color: var(--red); }
+.dare { border-radius: 12px; padding: 16px 18px; background: var(--assassin); color: #f2f2ee; display: flex; flex-direction: column; gap: 8px; border: 3px dashed var(--red); }
+.dare .dare-head { font-family: var(--font-display); font-weight: 900; font-size: 1.9rem; text-transform: uppercase; line-height: 1; color: #ff8d80; }
+.dare .dare-text { font-size: 1.25rem; font-weight: 600; line-height: 1.35; text-wrap: balance; }
+.screen .dare .dare-text { font-size: clamp(1.4rem, 2.4vw, 2.2rem); }
+.dare .btn { align-self: flex-start; background: #f2f2ee; color: #16181a; border-color: #f2f2ee; }
+.aimlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.aimlist li { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.aimlist b { font-family: var(--font-card); text-transform: uppercase; letter-spacing: .04em; }
+.chips-inline { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips-inline span { font-family: var(--font-card); font-weight: 700; text-transform: uppercase; font-size: 13px; letter-spacing: .04em; padding: 3px 9px; border-radius: 4px; background: var(--focus); color: #1d2124; }
+#pwDares { min-height: 80px; font-family: var(--font-body); font-size: 15px; }
 .records { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
 .records th { text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; padding: 0 0 6px 10px; }
 .records th:first-child, .records td:first-child { text-align: left; padding-left: 0; }
@@ -278,11 +299,13 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
     <div class="screen">
       <div class="screen-main">
         <div id="hBanner"></div>
+        <div id="hDare"></div>
         <div id="hStatus" aria-live="polite"></div>
         <main class="board big" id="hBoard" aria-label="Agent grid"></main>
       </div>
       <aside class="screen-side">
         <div class="panel"><h2>Current clue</h2><div class="current-clue" id="hClue"></div><span class="hint" id="hGuess"></span></div>
+        <div class="panel" id="hAimPanel" hidden><h2>What the spymasters meant</h2><ul class="aimlist" id="hAim"></ul></div>
         <div class="panel"><h2>Teams</h2><div class="roster" id="hRoster"></div><p class="hint" id="hLate"></p></div>
         <div class="panel"><h2>Records</h2><div class="rec-wrap"><table class="records" id="hRecords"></table></div></div>
         <div class="panel">
@@ -326,6 +349,9 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
         <p style="margin:0">Type words for the board, separated by commas or new lines. Up to 25. Nobody else sees your list until the cards are dealt. If someone else adds the same word, it goes on the board once.</p>
         <textarea id="pwText" spellcheck="true" placeholder="dorm, salt potato, Marshall Street, inside joke…" aria-label="Your words"></textarea>
         <span class="hint" id="pwCount">0 words</span>
+        <label class="label" for="pwDares" style="margin-top:6px">Dares for the bombs (optional)</label>
+        <p class="hint">There are 2 bombs on the board. Whoever taps one does a random dare from the pile. Add up to 3, one per line.</p>
+        <textarea id="pwDares" spellcheck="true" placeholder="Do 10 pushups&#10;Talk like a pirate until your next turn" aria-label="Your dares"></textarea>
         <div class="row"><button class="btn primary big" type="button" id="pwSubmit">Add my words</button><button class="btn" type="button" id="pwSkip">Skip</button></div>
       </div>
       <div id="pwDone" hidden style="display:flex;flex-direction:column;gap:10px">
@@ -340,6 +366,14 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
     <div style="display:flex;flex-direction:column;gap:12px">
       <div id="pRole"></div>
       <div id="pStatus"></div>
+      <div id="pDare"></div>
+      <div class="panel" id="pCompose" hidden>
+        <div class="row" style="justify-content:space-between"><h2 id="pcTitle">Your clue</h2><span class="timer" id="pcTimer"></span></div>
+        <p class="hint" id="pcHelp"></p>
+        <input id="pcWord" maxlength="30" placeholder="One-word clue" aria-label="Clue word" autocomplete="off">
+        <div class="chips-inline" id="pcTargets"></div>
+        <div class="row"><button class="btn primary big" type="button" id="pcSend">Send clue</button><button class="btn" type="button" id="pcClear">Clear</button></div>
+      </div>
       <div class="panel" id="pAction"></div>
       <main class="board phone" id="pBoard" aria-label="Agent grid"></main>
       <p class="hint" id="pNote"></p>
@@ -384,7 +418,46 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 const DEFAULT_WORDS = `anchor,apple,arrow,atlas,badge,balloon,bamboo,band,bank,bark,battery,beach,bear,bell,belt,bench,berry,bike,blade,blanket,board,boat,bolt,bomb,bone,boot,bottle,bowl,box,brain,bridge,brush,bubble,bucket,bug,button,cabin,cactus,cake,camera,camp,candle,cannon,canvas,cap,captain,car,card,carpet,castle,cat,cave,chain,chair,chalk,charge,check,cheese,chest,circle,cliff,clock,cloud,club,coach,coat,code,coin,comet,compass,cookie,copper,cotton,court,crane,crown,crystal,cup,curtain,dart,deck,desert,diamond,dice,dinosaur,doctor,dog,dragon,dress,drill,drum,duck,eagle,egg,engine,eye,fair,fan,feather,fence,field,file,film,fire,fish,flag,flute,fog,forest,fork,fountain,fox,frame,frog,game,garden,gas,ghost,giant,glass,glove,gold,grass,guitar,hammer,hand,harbor,hat,hawk,heart,helmet,hole,honey,hook,horn,horse,hospital,hotel,ice,iron,island,jacket,jam,jet,joker,judge,jungle,key,king,kite,knife,knight,ladder,lake,lamp,laser,lead,leaf,lemon,letter,light,lion,lock,log,magnet,mail,map,marble,mask,match,maze,medal,mercury,mile,mill,mint,mirror,model,moon,mountain,mouse,mug,nail,needle,net,night,note,nut,oak,ocean,octopus,oil,olive,opera,orange,organ,owl,paint,palm,pan,paper,park,party,pass,pen,penguin,piano,pie,pilot,pin,pipe,pirate,pit,pitch,planet,plate,plot,pocket,point,pole,pool,port,post,press,prince,pumpkin,puzzle,pyramid,queen,rabbit,racket,radio,rail,rain,ring,river,robot,rock,rocket,roll,root,rope,rose,ruler,saddle,sail,salt,satellite,saw,scale,school,scroll,seal,shadow,shark,sheep,shell,ship,shoe,shot,signal,silk,sink,skate,sky,slip,snake,snow,soap,sock,soldier,space,spider,spike,spine,spoon,spot,spring,spy,square,stadium,staff,stamp,star,station,steam,stick,stone,storm,straw,stream,string,sub,sugar,suit,sun,swan,sword,table,tail,tank,tape,teacher,telescope,temple,tent,thread,throne,thumb,ticket,tiger,tire,toast,tooth,torch,tower,track,train,trap,tree,triangle,trip,truck,trumpet,tube,tunnel,turtle,umbrella,unicorn,vacuum,van,velvet,violin,volcano,wagon,wall,watch,water,wave,web,whale,wheel,whip,whistle,wind,window,wing,wire,witch,wolf,wood,worm,yard,yarn,zebra,zero`.split(',');
 
+// Used when players don't add enough dares of their own. Kept mild so they work in any group.
+const DEFAULT_DARES = [
+  'Talk in an accent of the other team\'s choosing until your next turn.',
+  'Do 10 jumping jacks.',
+  'Let the other team pick a nickname for you for the rest of the game.',
+  'Speak only in questions until your team\'s next clue.',
+  'Do your best dance move for 10 seconds.',
+  'Give every player on the other team a sincere compliment.',
+  'Hold a plank until your spymaster gives the next clue.',
+  'Tell the room a funny story about yourself in under 30 seconds.',
+  'Narrate the next guess like a sports announcer.',
+  'Talk like a pirate until the next bomb.',
+  'Do your best evil villain laugh.',
+  'Balance something on your head until your team\'s next turn.',
+  'Say the alphabet backwards as fast as you can.',
+  'Act out a movie scene. The room has 30 seconds to guess the movie.',
+  'Make up a 4-line rap about the word you just picked.',
+  'Stand on one foot until your team\'s next turn.',
+  'Give a dramatic acceptance speech for your award: Best Bomb Finder.',
+  'Do 15 seconds of interpretive dance about the last clue.',
+  'Use only your non-dominant hand until your next turn.',
+  'Swap seats with someone on the other team.',
+  'Do an impression of someone in the room. Your team has to guess who.',
+  'Sing the next clue out loud when it is given, opera style.'
+];
+function parseDares(text) {
+  const seen = new Set(), out = [];
+  for (const raw of String(text || '').split(/\n+/)) {
+    const d = raw.trim().replace(/\s+/g, ' ').slice(0, 140);
+    const k = d.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+    if (!k || seen.has(k)) continue;
+    seen.add(k); out.push(d);
+  }
+  return out.slice(0, 3);
+}
+
 const ERRORS = {
+  time_up: 'Time ran out for that clue. The turn passed to the other team.',
+  pick_targets: 'Tap the cards your clue is aimed at, between 1 and 9 of your team\'s cards.',
+  bad_targets: 'You can only aim at your own team\'s cards that are still face down.',
   room_not_found: "There's no room with that code. Check the code on the big screen.",
   name_required: 'Enter your name so the others can see who joined.',
   room_full: 'This room is full (30 players).',
@@ -515,7 +588,7 @@ function renderBoard(el, S, o) {
     const b = document.createElement('button');
     b.type = 'button';
     const k = keyAt(S, i), rev = S.revealed[i], can = !!(o.can && o.can(i));
-    b.className = 'card k-' + k + (rev ? ' rev' : '') + (S.keys ? ' key' : '') + (can ? ' can' : '') + (o.sel === i ? ' sel' : '');
+    b.className = 'card k-' + k + (rev ? ' rev' : '') + (S.keys ? ' key' : '') + (can ? ' can' : '') + (o.sel === i ? ' sel' : '') + (o.aim && o.aim.has(i) ? ' aim' : '');
     b.disabled = !can;
     b.innerHTML = '<span class="w"></span>';
     b.firstChild.textContent = w;
@@ -543,7 +616,6 @@ function renderLog(el, S) {
     el.appendChild(li);
   });
 }
-function numOptions() { return ['1','2','3','4','5','6','7','8','9','0'].map(n => '<option value="' + n + '">' + n + '</option>').join('') + '<option value="inf">∞</option>'; }
 
 /* ---------- connection to a room ---------- */
 let ROOM = null;          // { code, token, as: 'host' | 'player' }
@@ -577,8 +649,11 @@ async function refresh() {
   fetching = true;
   const room = ROOM;
   try {
-    const st = await rpc('get_state', { p_code: room.code, p_token: room.token });
-    if (ROOM === room && (!S || st.version >= S.version)) { S = st; render(); }
+    const st = await rpc('get_state_v2', { p_code: room.code, p_token: room.token });
+    if (ROOM === room && (!S || st.version >= S.version)) {
+      st._off = st.server_now ? Date.parse(st.server_now) - Date.now() : 0;
+      S = st; render();
+    }
   } catch (e) {
     if (ROOM === room) {
       const m = e.message || '';
@@ -676,7 +751,9 @@ function renderHost() {
       const li = document.createElement('li'); li.className = p.done ? 'done' : '';
       li.innerHTML = '<span></span><span class="st"></span>';
       li.firstChild.textContent = p.name;
-      li.lastChild.textContent = p.done ? (p.word_count ? '✓ ' + p.word_count + ' word' + (p.word_count === 1 ? '' : 's') : '✓ skipped') : 'typing…';
+      li.lastChild.textContent = p.done
+        ? (p.word_count || p.dare_count ? '✓ ' + p.word_count + ' word' + (p.word_count === 1 ? '' : 's') + (p.dare_count ? ' · ' + p.dare_count + ' dare' + (p.dare_count === 1 ? '' : 's') : '') : '✓ skipped')
+        : 'typing…';
       list.appendChild(li);
     });
     return;
@@ -701,8 +778,28 @@ function renderHost() {
   }
   $('hBanner').innerHTML = S.winner ? '<div class="banner ' + S.winner + '">' + cap(S.winner) + ' wins <small>' + esc(S.win_reason || '') + '</small></div>' : '';
   $('hStatus').innerHTML = statusHTML(S, S.winner ? (S.win_reason || '') : S.clue_word ? 'Operatives, make your guesses on your phones.' : cap(S.turn) + "'s spymaster is thinking of a clue.");
+  setTimeout(tickTimers, 0);
   renderBoard($('hBoard'), S, {});
-  $('hClue').innerHTML = S.clue_word ? esc(S.clue_word + ' · ' + clueLabel(S)) + '<small>Clue from ' + cap(S.turn) + "'s spymaster</small>" : '<small>' + (S.winner ? 'Game over.' : 'Waiting for ' + cap(S.turn) + "'s spymaster.") + '</small>';
+  $('hClue').innerHTML = S.clue_word ? esc(S.clue_word + ' · ' + clueLabel(S)) + '<small>Clue from ' + cap(S.turn) + "'s spymaster</small>"
+    : S.winner ? '<small>Game over.</small>'
+    : '<div class="bigtimer" data-timer></div><small>' + cap(S.turn) + "'s spymaster has 3 minutes to give a clue. If time runs out, the turn passes.</small>";
+  const dare = $('hDare');
+  renderDare(dare, null);
+  if (S.current_dare) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = 'Dare done';
+    b.addEventListener('click', () => hostCall('dismiss_dare', { p_token: ROOM.token }, $('hGameErr'), b));
+    dare.firstChild.appendChild(b);
+  }
+  const hist = S.winner && S.clue_history ? S.clue_history : [];
+  $('hAimPanel').hidden = !hist.length;
+  $('hAim').innerHTML = '';
+  hist.forEach(h => {
+    const li = document.createElement('li');
+    li.innerHTML = '<span class="dot ' + (h.t === 'blue' ? 'blue' : 'red') + '"></span><b></b><span class="muted"></span>';
+    li.children[1].textContent = h.clue + ' ' + h.n;
+    li.children[2].textContent = '→ ' + (h.aim || []).join(', ');
+    $('hAim').appendChild(li);
+  });
   $('hGuess').textContent = guessHint(S);
   const col = t => {
     const items = ps.filter(p => p.team === t).sort((a, b) => (a.role === 'spymaster' ? -1 : 1) - (b.role === 'spymaster' ? -1 : 1))
@@ -717,12 +814,12 @@ function renderHost() {
   renderRecords($('hRecords'), ps);
   $('hEnd').disabled = !S.clue_word || !!S.winner;
 }
-$('hStart').addEventListener('click', () => hostCall('open_word_round', { p_host: ROOM.token, p_filler: hostFiller(), p_reshuffle: true }, $('hLobbyErr'), $('hStart')));
-$('hAgain').addEventListener('click', () => hostCall('open_word_round', { p_host: ROOM.token, p_filler: hostFiller(), p_reshuffle: false }, $('hGameErr'), $('hAgain')));
-$('hShuffle').addEventListener('click', () => hostCall('open_word_round', { p_host: ROOM.token, p_filler: hostFiller(), p_reshuffle: true }, $('hGameErr'), $('hShuffle')));
-$('hwrStart').addEventListener('click', () => hostCall('finish_word_round', { p_host: ROOM.token }, $('hwrErr'), $('hwrStart')));
+$('hStart').addEventListener('click', () => hostCall('open_word_round_v2', { p_host: ROOM.token, p_filler: hostFiller(), p_dare_filler: shuffle(DEFAULT_DARES), p_reshuffle: true }, $('hLobbyErr'), $('hStart')));
+$('hAgain').addEventListener('click', () => hostCall('open_word_round_v2', { p_host: ROOM.token, p_filler: hostFiller(), p_dare_filler: shuffle(DEFAULT_DARES), p_reshuffle: false }, $('hGameErr'), $('hAgain')));
+$('hShuffle').addEventListener('click', () => hostCall('open_word_round_v2', { p_host: ROOM.token, p_filler: hostFiller(), p_dare_filler: shuffle(DEFAULT_DARES), p_reshuffle: true }, $('hGameErr'), $('hShuffle')));
+$('hwrStart').addEventListener('click', () => hostCall('finish_word_round_v2', { p_host: ROOM.token }, $('hwrErr'), $('hwrStart')));
 $('hwrLobby').addEventListener('click', () => hostCall('back_to_lobby', { p_host: ROOM.token }, $('hwrErr'), $('hwrLobby')));
-$('hEnd').addEventListener('click', () => hostCall('end_turn', { p_token: ROOM.token }, $('hGameErr'), $('hEnd')));
+$('hEnd').addEventListener('click', () => hostCall('end_turn_v2', { p_token: ROOM.token }, $('hGameErr'), $('hEnd')));
 $('hLobbyBtn').addEventListener('click', () => hostCall('back_to_lobby', { p_host: ROOM.token }, $('hGameErr'), $('hLobbyBtn')));
 $('hExit').addEventListener('click', () => { store.del(KEY_HOST); disconnect(); goHome(); });
 
@@ -735,10 +832,12 @@ function enterPlayer(p) {
   connect({ code: p.code, token: p.token, as: 'player' });
 }
 async function playerCall(fn, args) {
+  let ok = false;
   busy = true; renderPlayer();
-  try { await rpc(fn, Object.assign({ p_code: ROOM.code, p_token: ROOM.token }, args)); sel = null; await refresh(); }
+  try { await rpc(fn, Object.assign({ p_code: ROOM.code, p_token: ROOM.token }, args)); ok = true; sel = null; await refresh(); }
   catch (e) { toast(friendly(e)); await refresh(); }
   busy = false; renderPlayer();
+  return ok;
 }
 function renderPlayer() {
   if (!S || !ROOM || ROOM.as !== 'player') return;
@@ -754,7 +853,7 @@ function renderPlayer() {
     $('pSeat').appendChild(r);
   }
   const wordPhase = S.status === 'words';
-  if (wordPhase && lastPhase !== 'words') { $('pwText').value = ''; pwEditing = false; updatePwCount(); }
+  if (wordPhase && lastPhase !== 'words') { $('pwText').value = ''; $('pwDares').value = ''; pwEditing = false; updatePwCount(); }
   lastPhase = S.status;
   $('pLobby').hidden = !!playing || wordPhase; $('pGame').hidden = !playing; $('pWordRound').hidden = !wordPhase;
   if (wordPhase) { renderWordRound(me); $('pConfirm').hidden = true; return; }
@@ -766,40 +865,125 @@ function renderPlayer() {
   }
   const spy = me.role === 'spymaster';
   const mine = !S.winner && S.turn === me.team;
-  $('pRole').innerHTML = S.log && S.log.length ? '' : '<div class="role-card ' + me.team + '"><span>You are on</span><b>' + cap(me.team) + ' · ' + (spy ? 'Spymaster' : 'Operative') + '</b><span>' + (spy ? 'Only you can see the colors. Give one-word clues.' : 'Guess the words your spymaster is hinting at.') + '</span></div>';
+  $('pRole').innerHTML = S.log && S.log.length ? '' : '<div class="role-card ' + me.team + '"><span>You are on</span><b>' + cap(me.team) + ' · ' + (spy ? 'Spymaster' : 'Operative') + '</b><span>' + (spy ? 'Only you can see the colors. Pick the cards you want your team to find and give a one-word clue.' : 'Guess the words your spymaster is hinting at.') + '</span></div>';
   const sub = S.winner ? (S.win_reason || '') : mine ? (spy ? (S.clue_word ? 'Your operatives are guessing.' : 'Your turn: give a clue.') : (S.clue_word ? 'Your turn: tap a card to guess.' : 'Waiting for your spymaster.')) : 'Waiting for ' + cap(S.turn) + '.';
   $('pStatus').innerHTML = '<div class="pstatus"><span class="count" style="color:var(--red)">' + left(S, 'red') + '</span><div style="text-align:center;min-width:0">' +
     (S.winner ? '<span class="turn-pill ' + S.winner + '">' + cap(S.winner) + ' wins</span>' : '<span class="turn-pill ' + S.turn + '">' + cap(S.turn) + "'s turn</span>") +
     '<div class="turn-sub' + (mine ? ' yourturn' : '') + '">' + esc(sub) + '</div></div><span class="count" style="color:var(--blue)">' + left(S, 'blue') + '</span></div>';
 
   const act = $('pAction');
-  const keepWord = $('pClueWord') ? $('pClueWord').value : '';
-  const keepNum = $('pClueNum') ? $('pClueNum').value : '1';
+  // Spymasters compose whenever their team has no clue in play: on their own turn to send it,
+  // and during the other team's turn to get the next one ready.
+  const composing = spy && !S.winner && !(mine && S.clue_word);
+  $('pCompose').hidden = !composing; act.hidden = composing;
+  if (composing) renderCompose(me, mine);
   if (S.winner) {
     act.innerHTML = '<div class="current-clue">' + cap(S.winner) + ' wins<small>The host can start the next game from the big screen.</small></div>';
-  } else if (spy && mine && !S.clue_word) {
-    act.innerHTML = '<h2>Give a clue</h2><form class="clue-form" id="pClueForm" autocomplete="off"><input id="pClueWord" maxlength="30" placeholder="One-word clue" aria-label="Clue word"><select id="pClueNum" aria-label="Number of words">' + numOptions() + '</select><button class="btn primary" type="submit"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Sending…' : 'Send clue') + '</button></form>';
-    $('pClueWord').value = keepWord; $('pClueNum').value = keepNum;
-    $('pClueForm').addEventListener('submit', e => {
-      e.preventDefault();
-      const word = $('pClueWord').value.trim();
-      if (!word) { toast('Type a clue word first.'); return; }
-      if (/\s/.test(word)) { toast(ERRORS.bad_clue); return; }
-      playerCall('give_clue', { p_word: word, p_num: $('pClueNum').value });
-    });
   } else if (S.clue_word) {
     act.innerHTML = '<div class="current-clue">' + esc(S.clue_word + ' · ' + clueLabel(S)) + '<small>' + esc(cap(S.turn) + "'s clue · " + guessHint(S)) + '</small></div>' +
+      (spy && mine ? '<p class="hint">Highlighted cards are the ones you aimed at.</p>' : '') +
       (!spy && mine ? '<div class="row"><button class="btn" type="button" id="pEnd"' + (busy ? ' disabled' : '') + '>End our turn</button></div>' : '');
-    const end = $('pEnd'); if (end) end.addEventListener('click', () => playerCall('end_turn', {}));
+    const end = $('pEnd'); if (end) end.addEventListener('click', () => playerCall('end_turn_v2', {}));
   } else {
-    act.innerHTML = '<div class="current-clue"><small>Waiting for ' + cap(S.turn) + "'s spymaster to give a clue.</small></div>";
+    act.innerHTML = '<div class="current-clue"><small>Waiting for ' + cap(S.turn) + "'s spymaster to give a clue · <span class=\"timer\" data-timer></span></small></div>";
   }
+  renderDare($('pDare'), me);
+
   const canGuess = !spy && mine && !!S.clue_word && !busy;
   if (sel !== null && (!canGuess || S.revealed[sel])) sel = null;
-  renderBoard($('pBoard'), S, { sel, can: i => canGuess && !S.revealed[i], onPick: i => { sel = i; renderPlayer(); } });
+  let aim = null, can = i => canGuess && !S.revealed[i], onPick = i => { sel = i; renderPlayer(); };
+  if (composing) {
+    aim = new Set(draft.targets);
+    can = i => !S.revealed[i] && S.keys && S.keys[i] === me.team;
+    onPick = i => { toggleTarget(i); };
+  } else if (spy && mine && S.clue_targets) {
+    aim = new Set(S.clue_targets);
+  }
+  renderBoard($('pBoard'), S, { sel, aim, can, onPick });
   $('pNote').textContent = busy ? 'Sending…' : spy ? 'You can see the key. Keep your screen hidden from the other players.' : '';
   if (sel !== null) { $('pConfirmWord').textContent = S.words[sel]; $('pConfirm').hidden = false; } else $('pConfirm').hidden = true;
+  tickTimers();
 }
+
+/* clue composer (spymasters) */
+let draft = { code: null, round: null, word: '', targets: [] };
+function syncDraft(me) {
+  if (draft.code !== ROOM.code || draft.round !== S.round) {
+    let d = null; try { d = JSON.parse(store.get('codebams.draft.' + ROOM.code, 'null')); } catch (e) {}
+    draft = (d && d.round === S.round) ? d : { code: ROOM.code, round: S.round, word: '', targets: [] };
+  }
+  // Drop any aimed card that has been revealed since (for example by the other team).
+  draft.targets = draft.targets.filter(i => !S.revealed[i] && S.keys && S.keys[i] === me.team);
+}
+function saveDraft() { store.set('codebams.draft.' + ROOM.code, JSON.stringify(draft)); }
+function toggleTarget(i) {
+  const at = draft.targets.indexOf(i);
+  if (at >= 0) draft.targets.splice(at, 1);
+  else if (draft.targets.length >= 9) { toast('A clue can aim at up to 9 cards.'); return; }
+  else draft.targets.push(i);
+  saveDraft(); renderPlayer();
+}
+function renderCompose(me, mine) {
+  syncDraft(me);
+  const n = draft.targets.length;
+  $('pcTitle').textContent = mine ? 'Your turn: send your clue' : 'Get your next clue ready';
+  $('pcHelp').textContent = mine
+    ? 'Tap the cards you are hinting at, type your clue, then send. The number is how many cards you picked.'
+    : (S.clue_word ? cap(S.turn) + ' is guessing.' : cap(S.turn) + "'s spymaster is choosing.") + ' Pick your cards and type your clue now. You can send it as soon as your turn starts.';
+  const t = $('pcTimer');
+  if (mine) t.setAttribute('data-timer', ''); else { t.removeAttribute('data-timer'); t.classList.remove('low'); t.textContent = 'Your turn next'; }
+  if (document.activeElement !== $('pcWord')) $('pcWord').value = draft.word;
+  const chips = $('pcTargets'); chips.innerHTML = '';
+  if (!n) chips.innerHTML = '<span style="background:var(--card);color:var(--muted);border:1px dashed var(--line)">No cards picked yet</span>';
+  draft.targets.forEach(i => { const c = document.createElement('span'); c.textContent = S.words[i]; chips.appendChild(c); });
+  updateComposeButton(mine);
+}
+function updateComposeButton(mine) {
+  if (mine === undefined) mine = S && S.me && !S.winner && S.turn === S.me.team;
+  const n = draft.targets.length, word = $('pcWord').value.trim();
+  const b = $('pcSend');
+  b.disabled = !mine || busy || !n || !word;
+  b.textContent = busy ? 'Sending…' : !mine ? 'Sends on your turn' : 'Send clue' + (word && n ? ': ' + word.toUpperCase() + ' ' + n : '');
+}
+$('pcWord').addEventListener('input', () => { draft.word = $('pcWord').value; saveDraft(); updateComposeButton(); });
+$('pcClear').addEventListener('click', () => { draft.word = ''; draft.targets = []; saveDraft(); $('pcWord').value = ''; renderPlayer(); });
+$('pcSend').addEventListener('click', async () => {
+  const word = $('pcWord').value.trim();
+  if (/\s/.test(word)) { toast(ERRORS.bad_clue); return; }
+  const ok = await playerCall('give_clue_v2', { p_word: word, p_targets: draft.targets.slice() });
+  if (ok) { draft.word = ''; draft.targets = []; saveDraft(); $('pcWord').value = ''; renderPlayer(); }
+});
+
+/* bombs and dares */
+function renderDare(el, me) {
+  const d = S.current_dare;
+  if (!d || S.status !== 'playing') { el.innerHTML = ''; return; }
+  const mineDare = me && me.name === d.name && me.team === d.team;
+  el.innerHTML = '<div class="dare"><span class="dare-head">Bomb!</span><span class="dare-sub"></span><span class="dare-text"></span></div>';
+  el.querySelector('.dare-sub').textContent = (mineDare ? 'You' : d.name + ' (' + cap(d.team) + ')') + ' hit ' + String(d.word).toUpperCase() + '. ' + (mineDare ? 'Your dare:' : 'Their dare:');
+  el.querySelector('.dare-text').textContent = d.text;
+}
+
+/* clue timer: 3 minutes for the spymaster whose turn it is */
+function clueLeftMs() {
+  if (!S || S.status !== 'playing' || S.winner || S.clue_word || !S.clue_deadline) return null;
+  return Date.parse(S.clue_deadline) - (Date.now() + (S._off || 0));
+}
+function fmtTime(ms) { const t = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
+let expiredFor = null;
+function tickTimers() {
+  const ms = clueLeftMs();
+  document.querySelectorAll('[data-timer]').forEach(el => {
+    el.textContent = ms === null ? '' : fmtTime(ms);
+    el.classList.toggle('low', ms !== null && ms <= 30000);
+  });
+  if (ms !== null && ms <= 0 && ROOM && expiredFor !== S.clue_deadline) {
+    expiredFor = S.clue_deadline;
+    rpc('expire_clue_timer', { p_code: ROOM.code, p_token: ROOM.token }).then(refresh).catch(() => {});
+  }
+}
+setInterval(tickTimers, 250);
+
 /* word round on the phone */
 let pwEditing = false, lastPhase = null, pwBusy = false;
 function updatePwCount() {
@@ -813,22 +997,23 @@ function renderWordRound(me) {
   $('pwSubmit').textContent = pwBusy ? 'Sending…' : pwEditing ? 'Save my words' : 'Add my words';
   $('pwSkip').hidden = pwEditing;
   if (!showForm) {
-    const n = (me.my_words || []).length;
-    $('pwDoneTitle').innerHTML = (n ? 'You added ' + n + ' word' + (n === 1 ? '' : 's') : 'You skipped this round') + '<small>Your words may land on the board for either team.</small>';
+    const n = (me.my_words || []).length, nd = (me.my_dares || []).length;
+    $('pwDoneTitle').innerHTML = (n ? 'You added ' + n + ' word' + (n === 1 ? '' : 's') : 'No words from you this round') +
+      '<small>' + (nd ? nd + ' dare' + (nd === 1 ? '' : 's') + ' added to the bomb pile. ' : '') + 'Your words may land on the board for either team.</small>';
     const waiting = (S.players || []).filter(p => !p.done).map(p => p.name);
     $('pwWaiting').textContent = waiting.length ? 'Waiting for ' + waiting.join(', ') + '.' : 'Dealing the cards…';
   }
 }
 async function sendWords(list) {
   pwBusy = true; renderPlayer();
-  try { await rpc('submit_words', { p_code: ROOM.code, p_token: ROOM.token, p_words: list.slice(0, 25) }); pwEditing = false; await refresh(); }
+  try { await rpc('submit_words_v2', { p_code: ROOM.code, p_token: ROOM.token, p_words: list.slice(0, 25), p_dares: parseDares($('pwDares').value) }); pwEditing = false; await refresh(); }
   catch (e) { toast(friendly(e)); }
   pwBusy = false; renderPlayer();
 }
 $('pwText').addEventListener('input', updatePwCount);
 $('pwSubmit').addEventListener('click', () => {
   const list = parseWords($('pwText').value);
-  if (!list.length && !pwEditing) { toast('Type at least one word, or tap Skip.'); return; }
+  if (!list.length && !parseDares($('pwDares').value).length && !pwEditing) { toast('Type at least one word, or tap Skip.'); return; }
   sendWords(list);
 });
 $('pwSkip').addEventListener('click', () => sendWords([]));
@@ -836,9 +1021,10 @@ $('pwEdit').addEventListener('click', () => {
   pwEditing = true;
   const mine = (S && S.me && S.me.my_words) || [];
   $('pwText').value = mine.join(', ');
+  $('pwDares').value = ((S && S.me && S.me.my_dares) || []).join('\n');
   updatePwCount(); renderPlayer(); $('pwText').focus();
 });
-$('pConfirmGo').addEventListener('click', () => { if (sel === null) return; const i = sel; sel = null; playerCall('reveal_card', { p_index: i }); });
+$('pConfirmGo').addEventListener('click', () => { if (sel === null) return; const i = sel; sel = null; playerCall('reveal_card_v2', { p_index: i }); });
 $('pConfirmNo').addEventListener('click', () => { sel = null; renderPlayer(); });
 $('pLeave').addEventListener('click', async () => {
   const r = ROOM; if (!r) return;
