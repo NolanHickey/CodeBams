@@ -450,7 +450,7 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
     </div>
     <div class="row" id="ptbSeats"></div>
   </div>
-  <div class="seatbar"><span class="seat-chip" id="pSeat"></span><div class="row"><button class="btn" type="button" id="pRename">Change name</button><button class="btn" type="button" id="pLeave">Leave</button></div></div>
+  <div class="seatbar"><span class="seat-chip" id="pSeat"></span><button class="btn" type="button" id="pLeave">Leave</button></div>
 
   <section id="pLobby" hidden>
     <div class="panel">
@@ -591,7 +591,6 @@ const ERRORS = {
   nickname_taken: 'Someone already picked their nickname.',
   other_team_picks: 'The other team picks the nickname.',
   player_gone: 'That player has left the game.',
-  name_locked: 'Your nickname is locked until 5 games are played.',
   bad_count: 'You can add between 1 and 8 test players at a time.',
   test_games_only: 'Ending a game early only works in test games (with test players in the room).',
   bad_winner: 'Pick Red or Blue as the winner.',
@@ -871,6 +870,7 @@ $('joinForm').addEventListener('submit', async e => {
   $('jGo').disabled = true;
   try {
     const r = await rpc('join_room', { p_code: code, p_name: name, p_device: deviceId() });
+    if (r.name_lock > 0 && r.name && r.name !== name) toast('You are still "' + r.name + '" for ' + r.name_lock + ' more game' + (r.name_lock === 1 ? '' : 's') + '. That was your bomb dare.');
     store.set(keyPlayer(r.code), r.token);
     enterPlayer({ code: r.code, token: r.token });
   } catch (err) { $('jErr').textContent = friendly(err); }
@@ -1029,10 +1029,11 @@ function renderPlayer() {
   $('pSeat').innerHTML = (playing ? '<span class="tag ' + me.team + '">' + cap(me.team) + '</span>' : '') + '<b></b><span class="muted">' + (playing ? (me.role === 'spymaster' ? 'Spymaster' : 'Operative') : 'Room ' + esc(S.code)) + '</span>';
   $('pSeat').querySelector('b').textContent = me.name || '';
   const lock = me.name_lock || 0;
-  $('pRename').hidden = !!testHost;
-  $('pRename').disabled = lock > 0;
-  $('pRename').title = lock > 0 ? 'Your nickname is locked for ' + lock + ' more game' + (lock === 1 ? '' : 's') + '.' : '';
-  $('pRename').textContent = lock > 0 ? 'Nickname · ' + lock + ' game' + (lock === 1 ? '' : 's') + ' left' : 'Change name';
+  if (lock > 0) {
+    const n = document.createElement('span'); n.className = 'muted';
+    n.textContent = '· nickname for ' + lock + ' more game' + (lock === 1 ? '' : 's');
+    $('pSeat').appendChild(n);
+  }
   const myRow = (S.players || []).find(p => p.id === me.id);
   if (myRow && myRow.all_games) {
     const r = document.createElement('span'); r.className = 'muted';
@@ -1165,18 +1166,12 @@ function maybeNickPopup(eligible) {
 function openNameGate(mode, d) {
   ngMode = mode; ngBusy = false; $('ngErr').textContent = ''; $('ngSave').disabled = false;
   const box = $('nameGateBox');
-  if (mode === 'nick') {
+  {
     box.classList.add('nick');
     $('ngTitle').textContent = 'Name them!';
     $('ngText').textContent = d.name + ' (' + cap(d.team) + ') hit a bomb. Pick the nickname they have to go by for the next 5 games. The first one sent sticks.';
     $('ngInput').value = ''; $('ngInput').placeholder = 'Captain Kaboom';
     $('ngSave').textContent = 'Give nickname'; $('ngCancel').textContent = 'Let my team pick';
-  } else {
-    box.classList.remove('nick');
-    $('ngTitle').textContent = 'Change your name';
-    $('ngText').textContent = 'This is how you show up on the big screen and in the team lists.';
-    $('ngInput').value = (S && S.me && S.me.name) || ''; $('ngInput').placeholder = 'Your name';
-    $('ngSave').textContent = 'Save name'; $('ngCancel').textContent = 'Cancel';
   }
   $('nameGate').hidden = false;
   setTimeout(() => { $('ngInput').focus(); $('ngInput').select(); }, 50);
@@ -1185,12 +1180,10 @@ function closeNameGate() { $('nameGate').hidden = true; ngMode = null; }
 async function saveNameGate() {
   if (ngBusy || !ROOM) return;
   const v = $('ngInput').value.trim();
-  if (!v) { $('ngErr').textContent = ngMode === 'nick' ? 'Type a nickname first.' : ERRORS.name_required; return; }
-  const mode = ngMode;
+  if (!v) { $('ngErr').textContent = 'Type a nickname first.'; return; }
   ngBusy = true; $('ngSave').disabled = true; $('ngErr').textContent = '';
   try {
-    if (mode === 'nick') await rpc('set_dare_nickname', { p_code: ROOM.code, p_token: ROOM.token, p_nickname: v });
-    else { await rpc('rename_self', { p_code: ROOM.code, p_token: ROOM.token, p_name: v }); store.set(KEY_NAME, v); }
+    await rpc('set_dare_nickname', { p_code: ROOM.code, p_token: ROOM.token, p_nickname: v });
     closeNameGate(); await refresh();
   } catch (e) {
     $('ngErr').textContent = friendly(e);
@@ -1201,7 +1194,6 @@ async function saveNameGate() {
 $('ngSave').addEventListener('click', saveNameGate);
 $('ngInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveNameGate(); } });
 $('ngCancel').addEventListener('click', () => { if (ngMode === 'nick' && S && S.current_dare) ngDismissed = dareKey(S.current_dare); closeNameGate(); });
-$('pRename').addEventListener('click', () => openNameGate('rename'));
 
 /* bombs and dares */
 function renderDare(el, me) {
