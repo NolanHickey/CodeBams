@@ -323,7 +323,7 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
     <div class="panel">
       <h2>Add your words</h2>
       <div id="pwForm" style="display:flex;flex-direction:column;gap:10px">
-        <p style="margin:0">Type words for the board, separated by commas or new lines. Up to 25. Nobody else sees your list until the cards are dealt.</p>
+        <p style="margin:0">Type words for the board, separated by commas or new lines. Up to 25. Nobody else sees your list until the cards are dealt. If someone else adds the same word, it goes on the board once.</p>
         <textarea id="pwText" spellcheck="true" placeholder="dorm, salt potato, Marshall Street, inside joke…" aria-label="Your words"></textarea>
         <span class="hint" id="pwCount">0 words</span>
         <div class="row"><button class="btn primary big" type="button" id="pwSubmit">Add my words</button><button class="btn" type="button" id="pwSkip">Skip</button></div>
@@ -449,8 +449,9 @@ function parseWords(text) {
   const seen = new Set(), out = [];
   for (const raw of text.split(/[\n,;]+/)) {
     const w = raw.trim().replace(/\s+/g, ' ').slice(0, 30);
-    if (!w) continue;
-    const k = w.toLowerCase();
+    // Same rule as the server: case, spaces and punctuation don't make a word different.
+    const k = w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+    if (!k) continue;
     if (!seen.has(k)) { seen.add(k); out.push(w); }
   }
   return out;
@@ -462,8 +463,9 @@ function hostFiller() {
   const defs = shuffle(DEFAULT_WORDS);
   if (src === 'default') return defs;
   if (src === 'custom' && custom.length >= 25) return custom;
-  const have = new Set(custom.map(w => w.toLowerCase()));
-  return custom.concat(defs.filter(w => !have.has(w))).slice(0, 400);
+  const key = w => w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+  const have = new Set(custom.map(key));
+  return custom.concat(defs.filter(w => !have.has(key(w)))).slice(0, 400);
 }
 function updateWordStats() {
   const list = parseWords($('customWords').value);
