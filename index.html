@@ -131,7 +131,10 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .card.rev.k-neutral { background: var(--neutral); color: #2a2418; }
 .card.rev.k-assassin { background: var(--assassin); color: #f2f2ee; }
 .card.rev.k-bomb { background: var(--assassin); color: #f2f2ee; box-shadow: inset 0 0 0 3px var(--red); }
-.card.rev.k-bomb .w::after { content: ' · bomb'; font-size: .7em; letter-spacing: .08em; color: var(--red); text-decoration: none; display: inline-block; }
+/* Revealed bomb: BOMB as the label, the word underneath in parentheses, no strikethrough. */
+.card.rev.k-bomb .w { text-decoration: none; opacity: 1; display: flex; flex-direction: column; align-items: center; gap: .15em; }
+.card.rev.k-bomb .bomb-label { font-family: var(--font-display); font-weight: 900; letter-spacing: .08em; color: #ffd23f; text-shadow: 2px 2px 0 #d62828; font-size: 1.15em; line-height: 1; }
+.card.rev.k-bomb .bomb-word { font-family: var(--font-body); font-weight: 500; text-transform: none; letter-spacing: 0; font-size: .62em; color: rgba(242, 242, 238, .65); }
 .card.rev::before { background: rgba(255,255,255,.45); }
 .card.key.rev { opacity: .45; }
 .card.rev .w { text-decoration: line-through; text-decoration-thickness: 2px; opacity: .85; }
@@ -165,7 +168,7 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .card.last.ring { box-shadow: 0 8px 18px rgba(0,0,0,.28), 0 0 0 3px var(--focus); }
 .card.last.k-bomb.ring { box-shadow: 0 8px 18px rgba(0,0,0,.3), 0 0 0 3px #ffd23f, 0 0 20px 6px var(--red); }
 .card.last .w { color: var(--blue); background: var(--surface); padding: 2px 6px; border-radius: 4px; opacity: 1; text-decoration: none; }
-.card.last.k-bomb .w::after { color: var(--red); }
+.card.last.k-bomb .w { background: none; padding: 0; color: inherit; }
 @media (prefers-reduced-motion: reduce) { .card { transition: none; } .card.can:hover, .card.sel { transform: none; } .card.just, .card.just.k-bomb { animation: none; } .card.last { transform: none; } }
 
 .clue-form { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -747,7 +750,13 @@ function renderBoard(el, S, o) {
     b.className = 'card k-' + k + (rev ? ' rev' : '') + (S.keys ? ' key' : '') + (can ? ' can' : '') + (o.sel === i ? ' sel' : '') +
       (o.aim && o.aim.has(i) ? ' aim' : '') + (just ? ' just' : '') + (rev && el._last === i ? ' last' + (el._ring ? ' ring' : '') : '');
     b.disabled = !can;
-    if (b.firstChild.textContent !== w) b.firstChild.textContent = w;
+    const bombShown = rev && k === 'bomb';
+    if (bombShown) {
+      if (!b.firstChild.querySelector('.bomb-label')) {
+        b.firstChild.innerHTML = '<span class="bomb-label">Bomb</span><span class="bomb-word"></span>';
+        b.firstChild.lastChild.textContent = '(' + w + ')';
+      }
+    } else if (b.firstChild.textContent !== w || b.firstChild.children.length) b.firstChild.textContent = w;
     b.setAttribute('aria-label', w + ((rev || S.keys) && k !== 'hidden' ? ' (' + (k === 'neutral' ? 'bystander' : k) + (rev ? ', revealed' : '') + ')' : ''));
     b.onclick = can ? () => o.onPick(i) : null;
   });
