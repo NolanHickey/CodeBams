@@ -146,6 +146,16 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .roster .role { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; flex: none; }
 .roster h3 { margin: 0 0 4px; font-family: var(--font-card); font-size: 14px; text-transform: uppercase; letter-spacing: .1em; }
 .roster .red h3 { color: var(--red); } .roster .blue h3 { color: var(--blue); }
+.wr { gap: 14px; padding: 24px; }
+.wr-title { font-family: var(--font-display); font-weight: 900; font-size: clamp(2rem, 5vw, 3.4rem); text-transform: uppercase; line-height: 1; text-wrap: balance; }
+.wr-sub { margin: 0; color: var(--muted); font-size: 16px; }
+.wr-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+.wr-list li { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--card-edge); border-radius: 8px; padding: 10px 12px; font-weight: 600; min-width: 0; }
+.wr-list li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wr-list .st { font-size: 12px; font-weight: 600; color: var(--muted); flex: none; }
+.wr-list li.done { border-color: var(--ok); }
+.wr-list li.done .st { color: var(--ok); }
+#pwText { min-height: 150px; font-family: var(--font-body); font-size: 15px; }
 .rec-wrap { overflow-x: auto; }
 .records { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
 .records th { text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; padding: 0 0 6px 10px; }
@@ -242,10 +252,25 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
           <button class="btn" type="button" id="hWordsLobby">Word list</button>
           <button class="btn" type="button" id="hExit">Close room</button>
         </div>
-        <p class="hint">Start splits everyone into two even teams and picks a random spymaster for each. Only spymasters see the key.</p>
+        <p class="hint">Start opens the word round: everyone adds words on their phone. Then the players are split into two even teams with a random spymaster each. Only spymasters see the key.</p>
         <p class="err" id="hLobbyErr"></p>
       </div>
       <div class="panel" id="hRecordsLobbyPanel" hidden><h2>Records</h2><div class="rec-wrap"><table class="records" id="hRecordsLobby"></table></div></div>
+    </div>
+  </section>
+
+  <section id="hWordRound" hidden>
+    <div class="panel wr">
+      <h2>Word round</h2>
+      <div class="wr-title">Add your words on your phone</div>
+      <p class="wr-sub" id="hwrHint"></p>
+      <ul class="wr-list" id="hwrList"></ul>
+      <div class="row">
+        <button class="btn go big" type="button" id="hwrStart">Start now</button>
+        <button class="btn" type="button" id="hwrLobby">Back to lobby</button>
+      </div>
+      <p class="hint">The game starts on its own when everyone is done. Start now skips anyone still typing.</p>
+      <p class="err" id="hwrErr"></p>
     </div>
   </section>
 
@@ -289,8 +314,25 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
   <section id="pLobby" hidden>
     <div class="panel">
       <h2>You're in</h2>
-      <p style="margin:0">Waiting for the host to start the game. Teams and spymasters are picked automatically.</p>
+      <p style="margin:0">Waiting for the host to start. You'll get to add your own words first, then teams and spymasters are picked automatically.</p>
       <ul class="lobby-list" id="pPlayers"></ul>
+    </div>
+  </section>
+
+  <section id="pWordRound" hidden>
+    <div class="panel">
+      <h2>Add your words</h2>
+      <div id="pwForm" style="display:flex;flex-direction:column;gap:10px">
+        <p style="margin:0">Type words for the board, separated by commas or new lines. Up to 25. Nobody else sees your list until the cards are dealt.</p>
+        <textarea id="pwText" spellcheck="true" placeholder="dorm, salt potato, Marshall Street, inside joke…" aria-label="Your words"></textarea>
+        <span class="hint" id="pwCount">0 words</span>
+        <div class="row"><button class="btn primary big" type="button" id="pwSubmit">Add my words</button><button class="btn" type="button" id="pwSkip">Skip</button></div>
+      </div>
+      <div id="pwDone" hidden style="display:flex;flex-direction:column;gap:10px">
+        <div class="current-clue" id="pwDoneTitle"></div>
+        <p class="hint" id="pwWaiting"></p>
+        <div class="row"><button class="btn" type="button" id="pwEdit">Edit my words</button></div>
+      </div>
     </div>
   </section>
 
@@ -360,7 +402,8 @@ const ERRORS = {
   bad_number: 'Pick a number for the clue.',
   bad_card: 'Pick a card on the board.',
   already_revealed: 'That card is already revealed.',
-  no_turn_to_end: 'There is no turn to end.'
+  no_turn_to_end: 'There is no turn to end.',
+  word_round_closed: 'The word round is already over.'
 };
 
 /* ---------- helpers ---------- */
@@ -412,15 +455,15 @@ function parseWords(text) {
   }
   return out;
 }
-function dealWords() {
-  const custom = parseWords(store.get(KEY_CUSTOM, ''));
-  let src = store.get(KEY_SRC, 'mix');
-  if (src === 'custom' && custom.length < 25) { src = 'mix'; toast('Not enough custom words for "Custom only", so built-in words filled the gaps.'); }
-  if (src === 'default') return shuffle(DEFAULT_WORDS).slice(0, 25);
-  if (src === 'custom') return shuffle(custom).slice(0, 25);
-  const c = shuffle(custom).slice(0, 25);
-  const used = new Set(c.map(w => w.toLowerCase()));
-  return shuffle(c.concat(shuffle(DEFAULT_WORDS.filter(w => !used.has(w))).slice(0, 25 - c.length)));
+// Fill-in words for when players don't add enough: the host's custom words first, then the built-in list.
+function hostFiller() {
+  const custom = shuffle(parseWords(store.get(KEY_CUSTOM, '')));
+  const src = store.get(KEY_SRC, 'mix');
+  const defs = shuffle(DEFAULT_WORDS);
+  if (src === 'default') return defs;
+  if (src === 'custom' && custom.length >= 25) return custom;
+  const have = new Set(custom.map(w => w.toLowerCase()));
+  return custom.concat(defs.filter(w => !have.has(w))).slice(0, 400);
 }
 function updateWordStats() {
   const list = parseWords($('customWords').value);
@@ -620,9 +663,22 @@ function renderRecords(el, ps) {
   });
 }
 function renderHost() {
-  const lobby = S.status === 'lobby';
-  $('hLobby').hidden = !lobby; $('hGame').hidden = lobby;
+  const lobby = S.status === 'lobby', words = S.status === 'words';
+  $('hLobby').hidden = !lobby; $('hWordRound').hidden = !words; $('hGame').hidden = lobby || words;
   const ps = S.players || [];
+  if (words) {
+    const done = ps.filter(p => p.done).length;
+    $('hwrHint').textContent = done + ' of ' + ps.length + ' done' + (S.pool_count ? ' · ' + S.pool_count + ' unused word' + (S.pool_count === 1 ? '' : 's') + ' carried over from earlier games' : '') + '. Join with code ' + S.code + '.';
+    const list = $('hwrList'); list.innerHTML = '';
+    ps.forEach(p => {
+      const li = document.createElement('li'); li.className = p.done ? 'done' : '';
+      li.innerHTML = '<span></span><span class="st"></span>';
+      li.firstChild.textContent = p.name;
+      li.lastChild.textContent = p.done ? (p.word_count ? '✓ ' + p.word_count + ' word' + (p.word_count === 1 ? '' : 's') : '✓ skipped') : 'typing…';
+      list.appendChild(li);
+    });
+    return;
+  }
   if (lobby) {
     $('hCount').textContent = ps.length + ' player' + (ps.length === 1 ? '' : 's');
     $('hNeed').textContent = ps.length < 4 ? 'Need ' + (4 - ps.length) + ' more to start' : 'Teams will be ' + Math.ceil(ps.length / 2) + ' vs ' + Math.floor(ps.length / 2);
@@ -652,14 +708,18 @@ function renderHost() {
     return '<div class="' + t + '"><h3>' + cap(t) + '</h3><ul>' + (items || '<li class="muted">Nobody</li>') + '</ul></div>';
   };
   $('hRoster').innerHTML = col('red') + col('blue');
-  $('hLate').textContent = 'Late arrivals can join with code ' + S.code + ' and land on the smaller team.';
+  const fp = S.from_players || 0;
+  $('hLate').textContent = (fp ? 'This board has ' + fp + ' word' + (fp === 1 ? '' : 's') + ' from players and ' + (25 - fp) + ' extra' + (25 - fp === 1 ? '' : 's') + '. ' : '') +
+    'Late arrivals can join with code ' + S.code + ' and land on the smaller team.';
   renderLog($('hLog'), S);
   renderRecords($('hRecords'), ps);
   $('hEnd').disabled = !S.clue_word || !!S.winner;
 }
-$('hStart').addEventListener('click', () => hostCall('start_game', { p_host: ROOM.token, p_words: dealWords(), p_reshuffle: true }, $('hLobbyErr'), $('hStart')));
-$('hAgain').addEventListener('click', () => hostCall('start_game', { p_host: ROOM.token, p_words: dealWords(), p_reshuffle: false }, $('hGameErr'), $('hAgain')));
-$('hShuffle').addEventListener('click', () => hostCall('start_game', { p_host: ROOM.token, p_words: dealWords(), p_reshuffle: true }, $('hGameErr'), $('hShuffle')));
+$('hStart').addEventListener('click', () => hostCall('open_word_round', { p_host: ROOM.token, p_filler: hostFiller(), p_reshuffle: true }, $('hLobbyErr'), $('hStart')));
+$('hAgain').addEventListener('click', () => hostCall('open_word_round', { p_host: ROOM.token, p_filler: hostFiller(), p_reshuffle: false }, $('hGameErr'), $('hAgain')));
+$('hShuffle').addEventListener('click', () => hostCall('open_word_round', { p_host: ROOM.token, p_filler: hostFiller(), p_reshuffle: true }, $('hGameErr'), $('hShuffle')));
+$('hwrStart').addEventListener('click', () => hostCall('finish_word_round', { p_host: ROOM.token }, $('hwrErr'), $('hwrStart')));
+$('hwrLobby').addEventListener('click', () => hostCall('back_to_lobby', { p_host: ROOM.token }, $('hwrErr'), $('hwrLobby')));
 $('hEnd').addEventListener('click', () => hostCall('end_turn', { p_token: ROOM.token }, $('hGameErr'), $('hEnd')));
 $('hLobbyBtn').addEventListener('click', () => hostCall('back_to_lobby', { p_host: ROOM.token }, $('hGameErr'), $('hLobbyBtn')));
 $('hExit').addEventListener('click', () => { store.del(KEY_HOST); disconnect(); goHome(); });
@@ -691,7 +751,11 @@ function renderPlayer() {
     r.title = 'All-time ' + rec(myRow.all_wins, myRow.all_games);
     $('pSeat').appendChild(r);
   }
-  $('pLobby').hidden = !!playing; $('pGame').hidden = !playing;
+  const wordPhase = S.status === 'words';
+  if (wordPhase && lastPhase !== 'words') { $('pwText').value = ''; pwEditing = false; updatePwCount(); }
+  lastPhase = S.status;
+  $('pLobby').hidden = !!playing || wordPhase; $('pGame').hidden = !playing; $('pWordRound').hidden = !wordPhase;
+  if (wordPhase) { renderWordRound(me); $('pConfirm').hidden = true; return; }
   if (!playing) {
     const list = $('pPlayers'); list.innerHTML = '';
     (S.players || []).forEach(p => { const li = document.createElement('li'); li.style.paddingRight = '14px'; li.textContent = p.name + (p.id === me.id ? ' (you)' : ''); list.appendChild(li); });
@@ -734,6 +798,44 @@ function renderPlayer() {
   $('pNote').textContent = busy ? 'Sending…' : spy ? 'You can see the key. Keep your screen hidden from the other players.' : '';
   if (sel !== null) { $('pConfirmWord').textContent = S.words[sel]; $('pConfirm').hidden = false; } else $('pConfirm').hidden = true;
 }
+/* word round on the phone */
+let pwEditing = false, lastPhase = null, pwBusy = false;
+function updatePwCount() {
+  const n = parseWords($('pwText').value).length;
+  $('pwCount').textContent = n > 25 ? n + ' words · only the first 25 count' : n + ' word' + (n === 1 ? '' : 's');
+}
+function renderWordRound(me) {
+  const showForm = !me.done || pwEditing;
+  $('pwForm').hidden = !showForm; $('pwDone').hidden = showForm;
+  $('pwSubmit').disabled = pwBusy; $('pwSkip').disabled = pwBusy;
+  $('pwSubmit').textContent = pwBusy ? 'Sending…' : pwEditing ? 'Save my words' : 'Add my words';
+  $('pwSkip').hidden = pwEditing;
+  if (!showForm) {
+    const n = (me.my_words || []).length;
+    $('pwDoneTitle').innerHTML = (n ? 'You added ' + n + ' word' + (n === 1 ? '' : 's') : 'You skipped this round') + '<small>Your words may land on the board for either team.</small>';
+    const waiting = (S.players || []).filter(p => !p.done).map(p => p.name);
+    $('pwWaiting').textContent = waiting.length ? 'Waiting for ' + waiting.join(', ') + '.' : 'Dealing the cards…';
+  }
+}
+async function sendWords(list) {
+  pwBusy = true; renderPlayer();
+  try { await rpc('submit_words', { p_code: ROOM.code, p_token: ROOM.token, p_words: list.slice(0, 25) }); pwEditing = false; await refresh(); }
+  catch (e) { toast(friendly(e)); }
+  pwBusy = false; renderPlayer();
+}
+$('pwText').addEventListener('input', updatePwCount);
+$('pwSubmit').addEventListener('click', () => {
+  const list = parseWords($('pwText').value);
+  if (!list.length && !pwEditing) { toast('Type at least one word, or tap Skip.'); return; }
+  sendWords(list);
+});
+$('pwSkip').addEventListener('click', () => sendWords([]));
+$('pwEdit').addEventListener('click', () => {
+  pwEditing = true;
+  const mine = (S && S.me && S.me.my_words) || [];
+  $('pwText').value = mine.join(', ');
+  updatePwCount(); renderPlayer(); $('pwText').focus();
+});
 $('pConfirmGo').addEventListener('click', () => { if (sel === null) return; const i = sel; sel = null; playerCall('reveal_card', { p_index: i }); });
 $('pConfirmNo').addEventListener('click', () => { sel = null; renderPlayer(); });
 $('pLeave').addEventListener('click', async () => {
