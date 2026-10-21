@@ -241,6 +241,17 @@ header.top { display: flex; align-items: center; justify-content: space-between;
   50% { box-shadow: 0 0 0 2px #120807, 0 12px 54px rgba(255, 183, 3, .6); }
 }
 @media (prefers-reduced-motion: reduce) { .dare { animation: none; } }
+#ngInput { padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); font-size: 18px; font-weight: 600; }
+/* Nickname popup borrows the bomb banner's red and yellow stripes. */
+.dialog.nick { border: 8px solid transparent; color: #f7f3e8;
+  background: linear-gradient(160deg, #2a0f0c, #120807) padding-box, repeating-linear-gradient(135deg, #ffd23f 0 16px, #d62828 16px 32px) border-box;
+  animation: dareIn .7s cubic-bezier(.2,.8,.2,1) both; }
+.dialog.nick h3 { color: #ffd23f; text-shadow: 3px 3px 0 #d62828; font-size: 2.4rem; }
+.dialog.nick #ngInput { background: #f7f3e8; color: #16181a; border-color: #ffd23f; }
+.dialog.nick .btn.primary { background: #ffd23f; border-color: #ffd23f; color: #16181a; }
+.dialog.nick .btn:not(.primary) { background: transparent; color: #f7f3e8; border-color: rgba(247,243,232,.4); }
+.dialog.nick .err { color: #ffb3a8; }
+.dare .dare-nick { font-weight: 700; color: #ffd23f; }
 .dare .dare-text { font-size: 1.25rem; font-weight: 600; line-height: 1.35; text-wrap: balance; }
 .screen .dare .dare-text { font-size: clamp(1.4rem, 2.4vw, 2.2rem); }
 .dare .btn { align-self: flex-start; background: #ffd23f; color: #16181a; border-color: #ffd23f; font-weight: 700; }
@@ -439,7 +450,7 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
     </div>
     <div class="row" id="ptbSeats"></div>
   </div>
-  <div class="seatbar"><span class="seat-chip" id="pSeat"></span><button class="btn" type="button" id="pLeave">Leave</button></div>
+  <div class="seatbar"><span class="seat-chip" id="pSeat"></span><div class="row"><button class="btn" type="button" id="pRename">Change name</button><button class="btn" type="button" id="pLeave">Leave</button></div></div>
 
   <section id="pLobby" hidden>
     <div class="panel">
@@ -517,6 +528,16 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
   </div>
 </div>
 
+<div class="overlay" id="nameGate" hidden>
+  <div class="dialog" id="nameGateBox" role="dialog" aria-modal="true" aria-labelledby="ngTitle">
+    <h3 id="ngTitle"></h3>
+    <p id="ngText" style="margin:0"></p>
+    <input id="ngInput" maxlength="20" autocomplete="off" aria-label="Name">
+    <p class="err" id="ngErr"></p>
+    <div class="row"><button class="btn primary big" type="button" id="ngSave">Save</button><button class="btn" type="button" id="ngCancel">Cancel</button></div>
+  </div>
+</div>
+
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -566,6 +587,11 @@ function parseDares(text) {
 const ERRORS = {
   time_up: 'Time ran out for that clue. The turn passed to the other team.',
   pick_targets: 'Tap the cards your clue is aimed at, between 1 and 9 of your team\'s cards.',
+  no_nickname_dare: 'That nickname dare is over.',
+  nickname_taken: 'Someone already picked their nickname.',
+  other_team_picks: 'The other team picks the nickname.',
+  player_gone: 'That player has left the game.',
+  name_locked: 'Your nickname is locked until 5 games are played.',
   bad_count: 'You can add between 1 and 8 test players at a time.',
   test_games_only: 'Ending a game early only works in test games (with test players in the room).',
   bad_winner: 'Pick Red or Blue as the winner.',
@@ -941,6 +967,7 @@ function renderHost() {
     : '<div class="bigtimer" data-timer></div><small>' + cap(S.turn) + "'s spymaster has 3 minutes to give a clue. If time runs out, the turn passes.</small>";
   const dare = $('hDare');
   renderDare(dare, null);
+  maybeNickPopup(true);
   if (S.current_dare) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = 'Dare done';
     b.addEventListener('click', () => hostCall('dismiss_dare', { p_token: ROOM.token }, $('hGameErr'), b));
@@ -1001,6 +1028,11 @@ function renderPlayer() {
   const playing = S.status === 'playing' && me.team;
   $('pSeat').innerHTML = (playing ? '<span class="tag ' + me.team + '">' + cap(me.team) + '</span>' : '') + '<b></b><span class="muted">' + (playing ? (me.role === 'spymaster' ? 'Spymaster' : 'Operative') : 'Room ' + esc(S.code)) + '</span>';
   $('pSeat').querySelector('b').textContent = me.name || '';
+  const lock = me.name_lock || 0;
+  $('pRename').hidden = !!testHost;
+  $('pRename').disabled = lock > 0;
+  $('pRename').title = lock > 0 ? 'Your nickname is locked for ' + lock + ' more game' + (lock === 1 ? '' : 's') + '.' : '';
+  $('pRename').textContent = lock > 0 ? 'Nickname · ' + lock + ' game' + (lock === 1 ? '' : 's') + ' left' : 'Change name';
   const myRow = (S.players || []).find(p => p.id === me.id);
   if (myRow && myRow.all_games) {
     const r = document.createElement('span'); r.className = 'muted';
@@ -1042,6 +1074,7 @@ function renderPlayer() {
     act.innerHTML = '<div class="current-clue"><small>Waiting for ' + cap(S.turn) + "'s spymaster to give a clue · <span class=\"timer\" data-timer></span></small></div>";
   }
   renderDare($('pDare'), me);
+  maybeNickPopup(!!me.team && !!S.current_dare && me.team !== S.current_dare.team);
   $('pRoster').innerHTML = rosterHTML(S.players || [], me.id);
   renderLog($('pLog'), S);
 
@@ -1119,14 +1152,72 @@ $('pcSend').addEventListener('click', async () => {
   if (ok) { draft.word = ''; draft.targets = []; saveDraft(); $('pcWord').value = ''; renderPlayer(); }
 });
 
+/* name popups: the nickname dare, and changing your own name */
+let ngMode = null, ngDismissed = null, ngBusy = false;
+const dareKey = d => S.code + '|' + S.round + '|' + d.pid + '|' + d.word;
+function maybeNickPopup(eligible) {
+  const d = S && S.status === 'playing' ? S.current_dare : null;
+  const want = !!(d && d.kind === 'nickname' && !d.done && eligible && ngDismissed !== dareKey(d));
+  const open = !$('nameGate').hidden && ngMode === 'nick';
+  if (want && !open) openNameGate('nick', d);
+  else if (!want && open) closeNameGate();
+}
+function openNameGate(mode, d) {
+  ngMode = mode; ngBusy = false; $('ngErr').textContent = ''; $('ngSave').disabled = false;
+  const box = $('nameGateBox');
+  if (mode === 'nick') {
+    box.classList.add('nick');
+    $('ngTitle').textContent = 'Name them!';
+    $('ngText').textContent = d.name + ' (' + cap(d.team) + ') hit a bomb. Pick the nickname they have to go by for the next 5 games. The first one sent sticks.';
+    $('ngInput').value = ''; $('ngInput').placeholder = 'Captain Kaboom';
+    $('ngSave').textContent = 'Give nickname'; $('ngCancel').textContent = 'Let my team pick';
+  } else {
+    box.classList.remove('nick');
+    $('ngTitle').textContent = 'Change your name';
+    $('ngText').textContent = 'This is how you show up on the big screen and in the team lists.';
+    $('ngInput').value = (S && S.me && S.me.name) || ''; $('ngInput').placeholder = 'Your name';
+    $('ngSave').textContent = 'Save name'; $('ngCancel').textContent = 'Cancel';
+  }
+  $('nameGate').hidden = false;
+  setTimeout(() => { $('ngInput').focus(); $('ngInput').select(); }, 50);
+}
+function closeNameGate() { $('nameGate').hidden = true; ngMode = null; }
+async function saveNameGate() {
+  if (ngBusy || !ROOM) return;
+  const v = $('ngInput').value.trim();
+  if (!v) { $('ngErr').textContent = ngMode === 'nick' ? 'Type a nickname first.' : ERRORS.name_required; return; }
+  const mode = ngMode;
+  ngBusy = true; $('ngSave').disabled = true; $('ngErr').textContent = '';
+  try {
+    if (mode === 'nick') await rpc('set_dare_nickname', { p_code: ROOM.code, p_token: ROOM.token, p_nickname: v });
+    else { await rpc('rename_self', { p_code: ROOM.code, p_token: ROOM.token, p_name: v }); store.set(KEY_NAME, v); }
+    closeNameGate(); await refresh();
+  } catch (e) {
+    $('ngErr').textContent = friendly(e);
+    if (/nickname_taken|no_nickname_dare/.test(e.message || '')) setTimeout(() => { closeNameGate(); refresh(); }, 1400);
+  }
+  ngBusy = false; $('ngSave').disabled = false;
+}
+$('ngSave').addEventListener('click', saveNameGate);
+$('ngInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveNameGate(); } });
+$('ngCancel').addEventListener('click', () => { if (ngMode === 'nick' && S && S.current_dare) ngDismissed = dareKey(S.current_dare); closeNameGate(); });
+$('pRename').addEventListener('click', () => openNameGate('rename'));
+
 /* bombs and dares */
 function renderDare(el, me) {
   const d = S.current_dare;
   if (!d || S.status !== 'playing') { el.innerHTML = ''; return; }
-  const mineDare = me && me.name === d.name && me.team === d.team;
+  const mineDare = !!(me && me.id && d.pid ? me.id === d.pid : me && me.name === d.name && me.team === d.team);
   el.innerHTML = '<div class="dare"><span class="dare-head">Bomb!</span><span class="dare-sub"></span><span class="dare-text"></span></div>';
-  el.querySelector('.dare-sub').textContent = (mineDare ? 'You' : d.name + ' (' + cap(d.team) + ')') + ' hit ' + String(d.word).toUpperCase() + '. ' + (mineDare ? 'Your dare:' : 'Their dare:');
+  const who = d.done ? d.old : d.name;
+  el.querySelector('.dare-sub').textContent = (mineDare ? 'You' : who + ' (' + cap(d.team) + ')') + ' hit ' + String(d.word).toUpperCase() + '. ' + (mineDare ? 'Your dare:' : 'Their dare:');
   el.querySelector('.dare-text').textContent = d.text;
+  if (d.kind === 'nickname') {
+    const n = document.createElement('span'); n.className = 'dare-nick';
+    n.textContent = d.done ? who + ' is now "' + d.nick + '" for the next 5 games.'
+      : mineDare ? 'The other team is picking your nickname…' : cap(d.team === 'red' ? 'blue' : 'red') + ' team, pick their nickname!';
+    el.firstChild.appendChild(n);
+  }
 }
 
 /* clue timer: 3 minutes for the spymaster whose turn it is */
@@ -1199,6 +1290,7 @@ $('pLeave').addEventListener('click', async () => {
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   $('wordsGate').hidden = true;
+  if (!$('nameGate').hidden) { if (ngMode === 'nick' && S && S.current_dare) ngDismissed = dareKey(S.current_dare); closeNameGate(); }
   if (sel !== null) { sel = null; renderPlayer(); }
 });
 
