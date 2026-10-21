@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Codebams</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil+Display:wght@700;900&family=Archivo+Narrow:wght@500;600;700&family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+/* Layout: home = two entry cards; host = TV board + side rail (lobby shows code + QR); player = compact phone controller. */
+:root {
+  --bg: #e9ebe4; --surface: #f7f8f3; --ink: #1d2124; --muted: #5d6662; --line: #c9cdc3;
+  --card: #fbfbf6; --card-edge: #d4d6cc;
+  --red: #c4372d; --red-soft: #f3d6d2; --blue: #2457a6; --blue-soft: #d3def2;
+  --neutral: #c9b68c; --neutral-soft: #ece3cd; --assassin: #16181a; --on-team: #ffffff;
+  --focus: #e0a526; --ok: #2f7d4f;
+  --font-display: "Big Shoulders Stencil Display", "Impact", "Arial Narrow", sans-serif;
+  --font-card: "Archivo Narrow", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15191b; --surface: #1d2225; --ink: #e8ebe6; --muted: #98a19c; --line: #323a3d;
+    --card: #262c2f; --card-edge: #3a4246; --red: #e0574b; --red-soft: #4a2622; --blue: #4f84d6;
+    --blue-soft: #1f3150; --neutral: #a8956b; --neutral-soft: #3b3528; --assassin: #050607;
+    --focus: #f0b93a; --ok: #5cbf86; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: calc(20px + env(safe-area-inset-top, 0px)); padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+}
+[hidden] { display: none !important; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; } button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.view { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+#viewHost { max-width: 1500px; }
+#viewPlayer { max-width: 560px; gap: 12px; padding-bottom: 90px; }
+
+header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.logo { font-family: var(--font-display); font-weight: 900; font-size: clamp(2.2rem, 6vw, 3.2rem); line-height: .9; margin: 0; letter-spacing: .02em; text-transform: uppercase; }
+.logo span { color: var(--red); } .logo em { font-style: normal; color: var(--blue); }
+.logo.sm { font-size: 1.9rem; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 8px 14px; font-weight: 600; font-size: 14px; }
+.btn:hover:not(:disabled) { border-color: var(--muted); }
+.btn:disabled { opacity: .5; }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.big { padding: 12px 18px; font-size: 16px; }
+.btn.go { background: var(--ok); border-color: var(--ok); color: #fff; }
+.label { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 600; }
+.hint { font-size: 13px; color: var(--muted); margin: 0; }
+.muted { color: var(--muted); }
+.err { color: var(--red); font-size: 13px; font-weight: 600; margin: 0; min-height: 1.2em; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.lead { margin: 0; max-width: 62ch; color: var(--muted); }
+.notice { border: 1px dashed var(--line); border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--muted); margin: 0; }
+.conn { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.conn::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.conn.live::before { background: var(--ok); }
+
+/* home */
+.entries { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 720px) { .entries { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panel h2 { margin: 0; font-family: var(--font-card); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.panel h3.entry { margin: 0; font-family: var(--font-card); font-weight: 700; font-size: 1.4rem; text-transform: uppercase; letter-spacing: .04em; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field input { padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); min-width: 0; }
+#jCode { text-transform: uppercase; font-family: var(--font-mono); letter-spacing: .3em; font-size: 20px; }
+
+/* status + board */
+.status { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+.team { display: flex; align-items: baseline; gap: 10px; } .team.blue { justify-content: flex-end; }
+.count { font-family: var(--font-display); font-weight: 900; font-size: 2.4rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.team.red .count { color: var(--red); } .team.blue .count { color: var(--blue); }
+.turn { text-align: center; }
+.turn-pill { display: inline-block; font-family: var(--font-card); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; padding: 6px 14px; border-radius: 999px; color: var(--on-team); font-size: 15px; }
+.turn-pill.red { background: var(--red); } .turn-pill.blue { background: var(--blue); }
+.turn-sub { font-size: 13px; color: var(--muted); margin-top: 4px; min-height: 1.4em; }
+.board { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: clamp(5px, 1.2vw, 10px); }
+.card { position: relative; aspect-ratio: 1.55; max-width: 100%; border-radius: 8px; background: var(--card); border: 1px solid var(--card-edge); border-bottom-width: 4px;
+  display: flex; align-items: center; justify-content: center; padding: 4px; font-family: var(--font-card); font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+  font-size: clamp(10px, 1.9vw, 18px); line-height: 1.05; text-align: center; overflow-wrap: anywhere; transition: transform .12s ease, background-color .25s ease, color .25s ease; }
+.card.can:hover { transform: translateY(-2px); }
+.card .w { min-width: 0; }
+.card::before { content: ""; position: absolute; top: 5px; left: 6px; width: 18%; height: 3px; border-radius: 2px; background: var(--line); }
+.card.key.k-red { background: var(--red-soft); border-color: var(--red); }
+.card.key.k-blue { background: var(--blue-soft); border-color: var(--blue); }
+.card.key.k-neutral { background: var(--neutral-soft); border-color: var(--neutral); }
+.card.key.k-assassin { background: var(--assassin); color: #f2f2ee; border-color: var(--assassin); }
+.card.rev { color: var(--on-team); border-color: transparent; }
+.card.rev.k-red { background: var(--red); } .card.rev.k-blue { background: var(--blue); }
+.card.rev.k-neutral { background: var(--neutral); color: #2a2418; }
+.card.rev.k-assassin { background: var(--assassin); color: #f2f2ee; }
+.card.rev::before { background: rgba(255,255,255,.45); }
+.card.key.rev { opacity: .45; }
+.card.rev .w { text-decoration: line-through; text-decoration-thickness: 2px; opacity: .85; }
+.card.sel { outline: 3px solid var(--focus); outline-offset: 1px; transform: translateY(-2px); }
+.board.big .card { font-size: clamp(12px, 1.7vw, 30px); border-radius: 10px; }
+.board.phone { gap: 5px; }
+.board.phone .card { aspect-ratio: 1.25; font-size: clamp(9px, 2.9vw, 14px); border-radius: 6px; border-bottom-width: 3px; }
+.board.phone .card::before { display: none; }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } .card.can:hover, .card.sel { transform: none; } }
+
+.clue-form { display: flex; gap: 8px; flex-wrap: wrap; }
+.clue-form input { flex: 1 1 140px; min-width: 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); text-transform: uppercase; font-family: var(--font-card); font-weight: 700; letter-spacing: .05em; }
+.clue-form select { padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); }
+.current-clue { font-family: var(--font-card); font-weight: 700; font-size: 1.5rem; text-transform: uppercase; letter-spacing: .04em; line-height: 1.2; overflow-wrap: anywhere; }
+.current-clue small { font-family: var(--font-body); font-weight: 500; text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--muted); display: block; }
+.log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 230px; overflow-y: auto; font-family: var(--font-mono); font-size: 13px; }
+.log li { display: flex; gap: 8px; align-items: baseline; } .log li.g { padding-left: 17px; color: var(--muted); }
+.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; transform: translateY(1px); }
+.dot.red { background: var(--red); } .dot.blue { background: var(--blue); }
+
+/* host */
+.screen { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px; align-items: start; }
+@media (max-width: 1000px) { .screen { grid-template-columns: 1fr; } }
+.screen-main, .screen-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.screen .current-clue { font-size: 2.4rem; }
+.banner { border-radius: 10px; padding: 14px 18px; color: var(--on-team); font-family: var(--font-display); font-weight: 900; font-size: 2.2rem; text-transform: uppercase; line-height: 1; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.banner small { font-family: var(--font-body); font-size: 15px; font-weight: 600; text-transform: none; }
+.banner.red { background: var(--red); } .banner.blue { background: var(--blue); }
+.lobby { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 28px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px; }
+@media (max-width: 640px) { .lobby { grid-template-columns: 1fr; justify-items: center; text-align: center; } }
+.qr { width: 220px; max-width: 100%; aspect-ratio: 1; background: #fff; border-radius: 10px; padding: 10px; }
+.qr svg { width: 100%; height: 100%; display: block; }
+.bigcode { font-family: var(--font-mono); font-size: clamp(3rem, 9vw, 6rem); letter-spacing: .25em; line-height: 1; font-weight: 500; }
+.joinurl { font-family: var(--font-mono); font-size: 14px; overflow-wrap: anywhere; color: var(--muted); }
+.lobby-list { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.lobby-list li { display: inline-flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--card-edge); border-radius: 999px; padding: 5px 6px 5px 14px; font-weight: 600; }
+.lobby-list button { border: 0; background: transparent; color: var(--muted); width: 26px; height: 26px; border-radius: 50%; font-size: 16px; line-height: 1; }
+.lobby-list button:hover { background: var(--line); color: var(--ink); }
+.roster { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.roster ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 14px; }
+.roster li { display: flex; justify-content: space-between; gap: 6px; min-width: 0; }
+.roster li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.roster .role { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; flex: none; }
+.roster h3 { margin: 0 0 4px; font-family: var(--font-card); font-size: 14px; text-transform: uppercase; letter-spacing: .1em; }
+.roster .red h3 { color: var(--red); } .roster .blue h3 { color: var(--blue); }
+.rec-wrap { overflow-x: auto; }
+.records { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.records th { text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 600; padding: 0 0 6px 10px; }
+.records th:first-child, .records td:first-child { text-align: left; padding-left: 0; }
+.records td { padding: 4px 0 4px 10px; text-align: right; border-top: 1px solid var(--line); font-family: var(--font-mono); font-size: 13px; }
+.records td:first-child { font-family: var(--font-body); font-size: 14px; font-weight: 600; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.records .pip { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--line); }
+.records .pip.red { background: var(--red); } .records .pip.blue { background: var(--blue); }
+.codechip { font-family: var(--font-mono); font-size: 15px; letter-spacing: .15em; }
+
+/* player */
+.seatbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.seat-chip { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; min-width: 0; }
+.seat-chip b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tag { font-family: var(--font-card); text-transform: uppercase; letter-spacing: .06em; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 4px; color: var(--on-team); flex: none; }
+.tag.red { background: var(--red); } .tag.blue { background: var(--blue); }
+.pstatus { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.pstatus .count { font-size: 1.8rem; }
+.yourturn { font-weight: 700; color: var(--ink); }
+.role-card { border-radius: 12px; padding: 18px; color: var(--on-team); display: flex; flex-direction: column; gap: 4px; }
+.role-card.red { background: var(--red); } .role-card.blue { background: var(--blue); }
+.role-card b { font-family: var(--font-display); font-weight: 900; font-size: 2.2rem; text-transform: uppercase; line-height: 1; }
+.confirm { position: fixed; left: 0; right: 0; bottom: 0; z-index: 15; background: var(--surface); border-top: 1px solid var(--line);
+  padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.confirm b { font-family: var(--font-card); text-transform: uppercase; letter-spacing: .04em; font-size: 1.1rem; }
+
+/* dialogs */
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg label { position: relative; text-align: center; padding: 9px 4px; font-weight: 600; font-size: 13px; cursor: pointer; border-right: 1px solid var(--line); }
+.seg label:last-child { border-right: 0; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label:has(input:checked) { background: var(--ink); color: var(--bg); }
+.seg label:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: -3px; }
+.overlay { position: fixed; inset: 0; background: rgba(10,12,14,.6); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 16px; padding-top: calc(16px + env(safe-area-inset-top, 0px)); padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+.dialog { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; max-width: 640px; width: 100%; display: flex; flex-direction: column; gap: 14px; max-height: 100%; overflow-y: auto; }
+.dialog h3 { margin: 0; font-family: var(--font-display); font-weight: 900; font-size: 2rem; text-transform: uppercase; line-height: 1; }
+textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); font-family: var(--font-mono); font-size: 13px; line-height: 1.6; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 140px; overflow-y: auto; }
+.chip { font-family: var(--font-card); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: .04em; padding: 3px 8px; border-radius: 4px; background: var(--card); border: 1px solid var(--card-edge); }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 8px; font-weight: 600; z-index: 30; max-width: calc(100% - 32px); }
+@media (max-width: 480px) {
+  .status { grid-template-columns: 1fr 1fr; } .status .turn { grid-column: 1 / -1; order: -1; }
+  .count { font-size: 2rem; } .card::before { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div class="view" id="viewHome">
+  <header class="top"><h1 class="logo">Code<span>b</span><em>a</em>ms</h1></header>
+  <p class="lead">Two teams, 25 words, one spymaster each. Put the board on a TV or laptop and everyone plays from their phone. No accounts needed.</p>
+  <div class="entries">
+    <div class="panel">
+      <h3 class="entry">Host on this screen</h3>
+      <p class="hint">Use the TV or laptop everyone can see. You'll get a room code and a QR code for phones.</p>
+      <div class="row"><button class="btn primary big" type="button" id="hCreate">Create a room</button><button class="btn" type="button" id="hResume" hidden></button></div>
+      <p class="err" id="hErr"></p>
+    </div>
+    <form class="panel" id="joinForm" autocomplete="off">
+      <h3 class="entry">Join from your phone</h3>
+      <div class="field"><label class="label" for="jCode">Room code</label><input id="jCode" maxlength="4" placeholder="ABCD" inputmode="text" autocapitalize="characters"></div>
+      <div class="field"><label class="label" for="jName">Your name</label><input id="jName" maxlength="20" placeholder="Nolan"></div>
+      <button class="btn primary big" type="submit" id="jGo">Join game</button>
+      <p class="err" id="jErr"></p>
+    </form>
+  </div>
+  <p class="notice" id="homeNote" hidden></p>
+</div>
+
+<!-- HOST -->
+<div class="view" id="viewHost" hidden>
+  <header class="top">
+    <h1 class="logo">Code<span>b</span><em>a</em>ms</h1>
+    <div class="row"><span class="codechip" id="hCodeChip"></span><span class="conn" id="hConn">Connecting…</span></div>
+  </header>
+
+  <section id="hLobby" hidden>
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div class="lobby">
+        <div class="qr" id="hQR" aria-label="QR code to join"></div>
+        <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+          <span class="label">Join on your phone with code</span>
+          <div class="bigcode" id="hBigCode"></div>
+          <div class="joinurl" id="hJoinUrl"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="row" style="justify-content:space-between"><h2 id="hCount">Players</h2><span class="hint" id="hNeed"></span></div>
+        <ul class="lobby-list" id="hPlayers"></ul>
+        <div class="row">
+          <button class="btn go big" type="button" id="hStart" disabled>Start game</button>
+          <button class="btn" type="button" id="hWordsLobby">Word list</button>
+          <button class="btn" type="button" id="hExit">Close room</button>
+        </div>
+        <p class="hint">Start splits everyone into two even teams and picks a random spymaster for each. Only spymasters see the key.</p>
+        <p class="err" id="hLobbyErr"></p>
+      </div>
+      <div class="panel" id="hRecordsLobbyPanel" hidden><h2>Records</h2><div class="rec-wrap"><table class="records" id="hRecordsLobby"></table></div></div>
+    </div>
+  </section>
+
+  <section id="hGame" hidden>
+    <div class="screen">
+      <div class="screen-main">
+        <div id="hBanner"></div>
+        <div id="hStatus" aria-live="polite"></div>
+        <main class="board big" id="hBoard" aria-label="Agent grid"></main>
+      </div>
+      <aside class="screen-side">
+        <div class="panel"><h2>Current clue</h2><div class="current-clue" id="hClue"></div><span class="hint" id="hGuess"></span></div>
+        <div class="panel"><h2>Teams</h2><div class="roster" id="hRoster"></div><p class="hint" id="hLate"></p></div>
+        <div class="panel"><h2>Records</h2><div class="rec-wrap"><table class="records" id="hRecords"></table></div></div>
+        <div class="panel">
+          <h2>Game</h2>
+          <div class="row">
+            <button class="btn" type="button" id="hEnd">End turn</button>
+            <button class="btn primary" type="button" id="hAgain">New game, same teams</button>
+            <button class="btn" type="button" id="hShuffle">Reshuffle teams</button>
+            <button class="btn" type="button" id="hWords">Word list</button>
+            <button class="btn" type="button" id="hLobbyBtn">Back to lobby</button>
+          </div>
+          <p class="hint">Same teams passes the spymaster role to the next teammate.</p>
+          <p class="err" id="hGameErr"></p>
+        </div>
+        <div class="panel"><h2>Clue log</h2><ul class="log" id="hLog"></ul></div>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<!-- PLAYER -->
+<div class="view" id="viewPlayer" hidden>
+  <header class="top">
+    <h1 class="logo sm">Code<span>b</span><em>a</em>ms</h1>
+    <span class="conn" id="pConn">Connecting…</span>
+  </header>
+  <div class="seatbar"><span class="seat-chip" id="pSeat"></span><button class="btn" type="button" id="pLeave">Leave</button></div>
+
+  <section id="pLobby" hidden>
+    <div class="panel">
+      <h2>You're in</h2>
+      <p style="margin:0">Waiting for the host to start the game. Teams and spymasters are picked automatically.</p>
+      <ul class="lobby-list" id="pPlayers"></ul>
+    </div>
+  </section>
+
+  <section id="pGame" hidden>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div id="pRole"></div>
+      <div id="pStatus"></div>
+      <div class="panel" id="pAction"></div>
+      <main class="board phone" id="pBoard" aria-label="Agent grid"></main>
+      <p class="hint" id="pNote"></p>
+    </div>
+  </section>
+</div>
+
+<div class="confirm" id="pConfirm" hidden>
+  <span>Reveal <b id="pConfirmWord"></b>?</span>
+  <button class="btn primary" type="button" id="pConfirmGo">Reveal</button>
+  <button class="btn" type="button" id="pConfirmNo">Cancel</button>
+</div>
+
+<div class="overlay" id="wordsGate" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="wordsTitle">
+    <h3 id="wordsTitle">Word list</h3>
+    <p class="hint">Type or paste your own words, separated by commas or new lines. Phrases like <em>ice cream</em> are fine. The list is saved on this screen and used from the next game.</p>
+    <textarea id="customWords" spellcheck="false" placeholder="dorm, carrel, Marshall Street, salt potato, dome..."></textarea>
+    <div class="row"><span class="hint" id="customCount">0 custom words</span><button class="btn" type="button" id="btnClearCustom">Clear</button></div>
+    <div>
+      <div class="label" style="margin-bottom:6px">Deal cards from</div>
+      <div class="seg" role="radiogroup" aria-label="Word source">
+        <label><input type="radio" name="src" id="srcMix" value="mix"><span>Mix both</span></label>
+        <label><input type="radio" name="src" id="srcCustom" value="custom"><span>Custom only</span></label>
+        <label><input type="radio" name="src" id="srcDefault" value="default"><span>Built-in only</span></label>
+      </div>
+    </div>
+    <p class="hint" id="mixHint"></p>
+    <details><summary class="hint" style="cursor:pointer">Built-in words (<span id="defCount"></span>)</summary><div class="chips" id="defChips" style="margin-top:8px"></div></details>
+    <p class="err" id="wordsErr"></p>
+    <div class="row"><button class="btn primary" type="button" id="wordsSave">Save</button><button class="btn" type="button" id="wordsCancel">Cancel</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ---------- config ---------- */
+const SUPABASE_URL = 'https://arwwmbkxrndmsokhuskh.supabase.co';
+// Public anon key: safe to ship. The tables are locked by row-level security; every move goes through server functions that check the player's token.
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyd3dtYmt4cm5kbXNva2h1c2toIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NDYwNTMsImV4cCI6MjEwODEyMjA1M30.dJhDbfAcqZUZYCtHTnTsiyxTBgamzBtAPAjlQfYJWxY';
+
+const DEFAULT_WORDS = `anchor,apple,arrow,atlas,badge,balloon,bamboo,band,bank,bark,battery,beach,bear,bell,belt,bench,berry,bike,blade,blanket,board,boat,bolt,bomb,bone,boot,bottle,bowl,box,brain,bridge,brush,bubble,bucket,bug,button,cabin,cactus,cake,camera,camp,candle,cannon,canvas,cap,captain,car,card,carpet,castle,cat,cave,chain,chair,chalk,charge,check,cheese,chest,circle,cliff,clock,cloud,club,coach,coat,code,coin,comet,compass,cookie,copper,cotton,court,crane,crown,crystal,cup,curtain,dart,deck,desert,diamond,dice,dinosaur,doctor,dog,dragon,dress,drill,drum,duck,eagle,egg,engine,eye,fair,fan,feather,fence,field,file,film,fire,fish,flag,flute,fog,forest,fork,fountain,fox,frame,frog,game,garden,gas,ghost,giant,glass,glove,gold,grass,guitar,hammer,hand,harbor,hat,hawk,heart,helmet,hole,honey,hook,horn,horse,hospital,hotel,ice,iron,island,jacket,jam,jet,joker,judge,jungle,key,king,kite,knife,knight,ladder,lake,lamp,laser,lead,leaf,lemon,letter,light,lion,lock,log,magnet,mail,map,marble,mask,match,maze,medal,mercury,mile,mill,mint,mirror,model,moon,mountain,mouse,mug,nail,needle,net,night,note,nut,oak,ocean,octopus,oil,olive,opera,orange,organ,owl,paint,palm,pan,paper,park,party,pass,pen,penguin,piano,pie,pilot,pin,pipe,pirate,pit,pitch,planet,plate,plot,pocket,point,pole,pool,port,post,press,prince,pumpkin,puzzle,pyramid,queen,rabbit,racket,radio,rail,rain,ring,river,robot,rock,rocket,roll,root,rope,rose,ruler,saddle,sail,salt,satellite,saw,scale,school,scroll,seal,shadow,shark,sheep,shell,ship,shoe,shot,signal,silk,sink,skate,sky,slip,snake,snow,soap,sock,soldier,space,spider,spike,spine,spoon,spot,spring,spy,square,stadium,staff,stamp,star,station,steam,stick,stone,storm,straw,stream,string,sub,sugar,suit,sun,swan,sword,table,tail,tank,tape,teacher,telescope,temple,tent,thread,throne,thumb,ticket,tiger,tire,toast,tooth,torch,tower,track,train,trap,tree,triangle,trip,truck,trumpet,tube,tunnel,turtle,umbrella,unicorn,vacuum,van,velvet,violin,volcano,wagon,wall,watch,water,wave,web,whale,wheel,whip,whistle,wind,window,wing,wire,witch,wolf,wood,worm,yard,yarn,zebra,zero`.split(',');
+
+const ERRORS = {
+  room_not_found: "There's no room with that code. Check the code on the big screen.",
+  name_required: 'Enter your name so the others can see who joined.',
+  room_full: 'This room is full (30 players).',
+  not_member: "You're no longer in this room.",
+  not_host: "This screen isn't the host for that room.",
+  need_4_players: 'You need at least 4 players to start.',
+  need_25_words: 'The game needs 25 words.',
+  duplicate_words: 'The word list has duplicates. Open Word list and remove them.',
+  uneven_teams: 'Each team needs at least 2 players. Try Reshuffle teams.',
+  game_not_running: 'The game is over.',
+  not_your_turn: "It's not your turn to do that.",
+  clue_in_play: 'A clue is already in play.',
+  bad_clue: 'Clues are one word with no spaces.',
+  clue_on_board: "That word is on the board, so it can't be a clue.",
+  bad_number: 'Pick a number for the clue.',
+  bad_card: 'Pick a card on the board.',
+  already_revealed: 'That card is already revealed.',
+  no_turn_to_end: 'There is no turn to end.'
+};
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+const cap = t => t ? t[0].toUpperCase() + t.slice(1) : '';
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+let toastTimer;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3600); }
+function friendly(e) {
+  const m = (e && e.message) || String(e);
+  for (const k in ERRORS) if (m.includes(k)) return ERRORS[k];
+  if (/fetch|network|Failed/i.test(m)) return "Couldn't reach the game server. Check your connection and try again.";
+  return 'Something went wrong: ' + m;
+}
+
+const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } }) : null;
+async function rpc(fn, args) {
+  if (!sb) throw new Error("Couldn't load the game library. Check your connection and reload.");
+  const { data, error } = await sb.rpc(fn, args || {});
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+/* ---------- word list ---------- */
+const KEY_CUSTOM = 'codebams.custom', KEY_SRC = 'codebams.src', KEY_HOST = 'codebams.host', KEY_NAME = 'codebams.name';
+const keyPlayer = code => 'codebams.player.' + code;
+// A permanent id for this phone, so a player's all-time record follows them from room to room.
+function deviceId() {
+  let d = store.get('codebams.device', null);
+  if (!d || !/^[0-9a-f-]{36}$/i.test(d)) {
+    d = (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }));
+    store.set('codebams.device', d);
+  }
+  return d;
+}
+function parseWords(text) {
+  const seen = new Set(), out = [];
+  for (const raw of text.split(/[\n,;]+/)) {
+    const w = raw.trim().replace(/\s+/g, ' ').slice(0, 30);
+    if (!w) continue;
+    const k = w.toLowerCase();
+    if (!seen.has(k)) { seen.add(k); out.push(w); }
+  }
+  return out;
+}
+function dealWords() {
+  const custom = parseWords(store.get(KEY_CUSTOM, ''));
+  let src = store.get(KEY_SRC, 'mix');
+  if (src === 'custom' && custom.length < 25) { src = 'mix'; toast('Not enough custom words for "Custom only", so built-in words filled the gaps.'); }
+  if (src === 'default') return shuffle(DEFAULT_WORDS).slice(0, 25);
+  if (src === 'custom') return shuffle(custom).slice(0, 25);
+  const c = shuffle(custom).slice(0, 25);
+  const used = new Set(c.map(w => w.toLowerCase()));
+  return shuffle(c.concat(shuffle(DEFAULT_WORDS.filter(w => !used.has(w))).slice(0, 25 - c.length)));
+}
+function updateWordStats() {
+  const list = parseWords($('customWords').value);
+  $('customCount').textContent = list.length + ' custom word' + (list.length === 1 ? '' : 's');
+  const src = document.querySelector('input[name=src]:checked').value;
+  const h = $('mixHint');
+  if (src === 'mix') h.textContent = list.length >= 25 ? 'All 25 cards will come from your list.' : 'Each game uses all ' + list.length + ' of your words, plus ' + (25 - list.length) + ' built-in words.';
+  else if (src === 'custom') h.textContent = list.length >= 25 ? 'Each game picks 25 of your ' + list.length + ' words.' : 'Custom only needs at least 25 words. You have ' + list.length + '.';
+  else h.textContent = 'Your custom words are kept but not dealt.';
+}
+function openWords() {
+  $('customWords').value = store.get(KEY_CUSTOM, '');
+  $('src' + cap(store.get(KEY_SRC, 'mix'))).checked = true;
+  $('wordsErr').textContent = '';
+  updateWordStats();
+  $('wordsGate').hidden = false;
+  $('customWords').focus();
+}
+$('customWords').addEventListener('input', updateWordStats);
+document.querySelectorAll('input[name=src]').forEach(r => r.addEventListener('change', updateWordStats));
+$('btnClearCustom').addEventListener('click', () => { $('customWords').value = ''; updateWordStats(); });
+$('wordsSave').addEventListener('click', () => {
+  const src = document.querySelector('input[name=src]:checked').value;
+  if (src === 'custom' && parseWords($('customWords').value).length < 25) { $('wordsErr').textContent = 'Add at least 25 words for "Custom only", or switch to "Mix both".'; return; }
+  store.set(KEY_CUSTOM, $('customWords').value); store.set(KEY_SRC, src);
+  $('wordsGate').hidden = true; toast('Word list saved. It applies from the next game.');
+});
+$('wordsCancel').addEventListener('click', () => { $('wordsGate').hidden = true; });
+$('defCount').textContent = DEFAULT_WORDS.length;
+$('defChips').innerHTML = DEFAULT_WORDS.map(w => '<span class="chip">' + w + '</span>').join('');
+$('hWordsLobby').addEventListener('click', openWords);
+$('hWords').addEventListener('click', openWords);
+
+/* ---------- shared rendering ---------- */
+function keyAt(S, i) { return S.keys ? S.keys[i] : (S.revealed_keys && S.revealed_keys[i]) || 'hidden'; }
+function rec(w, g) { return w + '–' + (g - w); }
+function totals(S) {
+  if (S.keys) return { red: S.keys.filter(k => k === 'red').length, blue: S.keys.filter(k => k === 'blue').length };
+  // Without the key: the team that went first has 9. The first clue in the log (or the current turn if none yet) tells us who that was.
+  const first = (S.log && S.log.length ? S.log[0].t : S.turn) || 'red';
+  return { red: first === 'red' ? 9 : 8, blue: first === 'blue' ? 9 : 8 };
+}
+function left(S, team) { return totals(S)[team] - (S.revealed_keys || []).filter(k => k === team).length; }
+function renderBoard(el, S, o) {
+  el.innerHTML = '';
+  S.words.forEach((w, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    const k = keyAt(S, i), rev = S.revealed[i], can = !!(o.can && o.can(i));
+    b.className = 'card k-' + k + (rev ? ' rev' : '') + (S.keys ? ' key' : '') + (can ? ' can' : '') + (o.sel === i ? ' sel' : '');
+    b.disabled = !can;
+    b.innerHTML = '<span class="w"></span>';
+    b.firstChild.textContent = w;
+    b.setAttribute('aria-label', w + ((rev || S.keys) && k !== 'hidden' ? ' (' + (k === 'neutral' ? 'bystander' : k) + (rev ? ', revealed' : '') + ')' : ''));
+    if (can) b.addEventListener('click', () => o.onPick(i));
+    el.appendChild(b);
+  });
+}
+function statusHTML(S, sub) {
+  const pill = S.winner ? '<span class="turn-pill ' + S.winner + '">' + cap(S.winner) + ' wins</span>' : '<span class="turn-pill ' + S.turn + '">' + cap(S.turn) + "'s turn</span>";
+  return '<div class="status"><div class="team red"><span class="count">' + left(S, 'red') + '</span><span class="label">Red left</span></div>' +
+    '<div class="turn">' + pill + '<div class="turn-sub">' + esc(sub) + '</div></div>' +
+    '<div class="team blue"><span class="label">Blue left</span><span class="count">' + left(S, 'blue') + '</span></div></div>';
+}
+function guessHint(S) { return !S.clue_word ? '' : S.guesses_left === -1 ? 'Unlimited guesses' : S.guesses_left + ' guess' + (S.guesses_left === 1 ? '' : 'es') + ' left'; }
+function clueLabel(S) { return S.clue_num === 'inf' ? '∞' : S.clue_num; }
+function renderLog(el, S) {
+  el.innerHTML = '';
+  const items = (S.log || []).slice().reverse();
+  if (!items.length) { el.innerHTML = '<li class="muted">No clues yet.</li>'; return; }
+  items.forEach(e => {
+    const li = document.createElement('li');
+    if (e.g) li.className = 'g'; else li.innerHTML = '<span class="dot ' + (e.t === 'blue' ? 'blue' : 'red') + '"></span>';
+    li.appendChild(document.createTextNode(e.s + (e.by && !e.g ? ' · ' + e.by : '')));
+    el.appendChild(li);
+  });
+}
+function numOptions() { return ['1','2','3','4','5','6','7','8','9','0'].map(n => '<option value="' + n + '">' + n + '</option>').join('') + '<option value="inf">∞</option>'; }
+
+/* ---------- connection to a room ---------- */
+let ROOM = null;          // { code, token, as: 'host' | 'player' }
+let S = null;             // latest state from the server
+let channel = null, pollTimer = null, fetching = false, fetchAgain = false, live = false;
+function show(v) { ['Home', 'Host', 'Player'].forEach(n => { $('view' + n).hidden = n !== v; }); if (v !== 'Player') $('pConfirm').hidden = true; window.scrollTo(0, 0); }
+function setUrl(params) { const u = new URL(location.href); u.search = ''; for (const k in params) u.searchParams.set(k, params[k]); history.replaceState(null, '', u); }
+function joinUrl(code) { const u = new URL(location.href); u.search = ''; u.hash = ''; u.searchParams.set('join', code); return u.toString(); }
+
+function connect(room) {
+  disconnect();
+  ROOM = room; S = null;
+  if (sb) {
+    channel = sb.channel('room-' + room.code)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'room_signals', filter: 'code=eq.' + room.code }, () => refresh())
+      .subscribe(status => { live = status === 'SUBSCRIBED'; setConn(); if (live) refresh(); });
+  }
+  refresh();
+  pollTimer = setInterval(() => { if (!live || document.visibilityState === 'visible') refresh(); }, live ? 8000 : 4000);
+}
+function disconnect() {
+  if (channel && sb) sb.removeChannel(channel);
+  channel = null; clearInterval(pollTimer); ROOM = null; S = null; live = false;
+}
+function setConn() { [$('hConn'), $('pConn')].forEach(el => { el.textContent = live ? 'Live' : 'Reconnecting…'; el.classList.toggle('live', live); }); }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && ROOM) refresh(); });
+
+async function refresh() {
+  if (!ROOM) return;
+  if (fetching) { fetchAgain = true; return; }
+  fetching = true;
+  const room = ROOM;
+  try {
+    const st = await rpc('get_state', { p_code: room.code, p_token: room.token });
+    if (ROOM === room && (!S || st.version >= S.version)) { S = st; render(); }
+  } catch (e) {
+    if (ROOM === room) {
+      const m = e.message || '';
+      if (m.includes('not_member') || m.includes('room_not_found') || m.includes('not_host')) {
+        if (room.as === 'host') store.del(KEY_HOST); else store.del(keyPlayer(room.code));
+        disconnect(); goHome(m.includes('room_not_found') ? 'That room has closed.' : "You're no longer in that room.");
+      }
+    }
+  }
+  fetching = false;
+  if (fetchAgain) { fetchAgain = false; refresh(); }
+}
+function render() { if (!S || !ROOM) return; if (ROOM.as === 'host') renderHost(); else renderPlayer(); }
+
+/* ---------- home ---------- */
+function goHome(note) {
+  show('Home'); setUrl({});
+  $('homeNote').hidden = !note; $('homeNote').textContent = note || '';
+  let host = null; try { host = JSON.parse(store.get(KEY_HOST, 'null')); } catch (e) {}
+  $('hResume').hidden = !host;
+  if (host) $('hResume').textContent = 'Resume room ' + host.code;
+  $('jName').value = $('jName').value || store.get(KEY_NAME, '');
+}
+$('hCreate').addEventListener('click', async () => {
+  const b = $('hCreate'); b.disabled = true; $('hErr').textContent = '';
+  try {
+    const r = await rpc('create_room');
+    store.set(KEY_HOST, JSON.stringify({ code: r.code, token: r.host_token }));
+    enterHost({ code: r.code, token: r.host_token });
+  } catch (e) { $('hErr').textContent = friendly(e); }
+  b.disabled = false;
+});
+$('hResume').addEventListener('click', () => { try { const h = JSON.parse(store.get(KEY_HOST, 'null')); if (h) enterHost(h); } catch (e) {} });
+$('jCode').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, ''); });
+$('joinForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const code = $('jCode').value.trim().toUpperCase(), name = $('jName').value.trim();
+  $('jErr').textContent = '';
+  if (code.length !== 4) { $('jErr').textContent = 'Room codes are 4 letters.'; return; }
+  if (!name) { $('jErr').textContent = ERRORS.name_required; return; }
+  store.set(KEY_NAME, name);
+  const existing = store.get(keyPlayer(code), null);
+  if (existing) { enterPlayer({ code, token: existing }); return; }
+  $('jGo').disabled = true;
+  try {
+    const r = await rpc('join_room', { p_code: code, p_name: name, p_device: deviceId() });
+    store.set(keyPlayer(r.code), r.token);
+    enterPlayer({ code: r.code, token: r.token });
+  } catch (err) { $('jErr').textContent = friendly(err); }
+  $('jGo').disabled = false;
+});
+
+/* ---------- host ---------- */
+function enterHost(h) {
+  show('Host'); setUrl({ host: h.code });
+  $('hCodeChip').textContent = h.code;
+  connect({ code: h.code, token: h.token, as: 'host' });
+  $('hBigCode').textContent = h.code;
+  const url = joinUrl(h.code);
+  $('hJoinUrl').textContent = url;
+  try {
+    const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+    $('hQR').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+  } catch (e) { $('hQR').hidden = true; }
+}
+async function hostCall(fn, args, errEl, btn) {
+  if (btn) btn.disabled = true;
+  if (errEl) errEl.textContent = '';
+  try { await rpc(fn, Object.assign({ p_code: ROOM.code }, args)); await refresh(); }
+  catch (e) { if (errEl) errEl.textContent = friendly(e); else toast(friendly(e)); }
+  if (btn) btn.disabled = false;
+  render();
+}
+function renderRecords(el, ps) {
+  const rows = ps.slice().sort((a, b) => (b.wins - a.wins) || (b.all_wins - a.all_wins) || a.name.localeCompare(b.name));
+  el.innerHTML = '<thead><tr><th>Player</th><th>Tonight</th><th>All-time</th><th>Win %</th></tr></thead><tbody></tbody>';
+  const body = el.querySelector('tbody');
+  rows.forEach(p => {
+    const tr = document.createElement('tr');
+    const pct = p.all_games ? Math.round(100 * p.all_wins / p.all_games) + '%' : '–';
+    tr.innerHTML = '<td><span class="pip ' + (p.team || '') + '"></span><span></span></td><td>' + rec(p.wins, p.games) + '</td><td>' + rec(p.all_wins, p.all_games) + '</td><td>' + pct + '</td>';
+    tr.firstChild.lastChild.textContent = p.name;
+    body.appendChild(tr);
+  });
+}
+function renderHost() {
+  const lobby = S.status === 'lobby';
+  $('hLobby').hidden = !lobby; $('hGame').hidden = lobby;
+  const ps = S.players || [];
+  if (lobby) {
+    $('hCount').textContent = ps.length + ' player' + (ps.length === 1 ? '' : 's');
+    $('hNeed').textContent = ps.length < 4 ? 'Need ' + (4 - ps.length) + ' more to start' : 'Teams will be ' + Math.ceil(ps.length / 2) + ' vs ' + Math.floor(ps.length / 2);
+    const list = $('hPlayers'); list.innerHTML = '';
+    if (!ps.length) list.innerHTML = '<li class="muted" style="padding:5px 14px">Nobody yet. Scan the code to join.</li>';
+    ps.forEach(p => {
+      const li = document.createElement('li');
+      li.appendChild(document.createTextNode(p.name));
+      const x = document.createElement('button'); x.type = 'button'; x.textContent = '×'; x.title = 'Remove ' + p.name; x.setAttribute('aria-label', 'Remove ' + p.name);
+      x.addEventListener('click', () => hostCall('kick_player', { p_host: ROOM.token, p_player: p.id }, $('hLobbyErr')));
+      li.appendChild(x); list.appendChild(li);
+    });
+    $('hStart').disabled = ps.length < 4;
+    const anyRecord = ps.some(p => p.all_games > 0);
+    $('hRecordsLobbyPanel').hidden = !anyRecord;
+    if (anyRecord) renderRecords($('hRecordsLobby'), ps);
+    return;
+  }
+  $('hBanner').innerHTML = S.winner ? '<div class="banner ' + S.winner + '">' + cap(S.winner) + ' wins <small>' + esc(S.win_reason || '') + '</small></div>' : '';
+  $('hStatus').innerHTML = statusHTML(S, S.winner ? (S.win_reason || '') : S.clue_word ? 'Operatives, make your guesses on your phones.' : cap(S.turn) + "'s spymaster is thinking of a clue.");
+  renderBoard($('hBoard'), S, {});
+  $('hClue').innerHTML = S.clue_word ? esc(S.clue_word + ' · ' + clueLabel(S)) + '<small>Clue from ' + cap(S.turn) + "'s spymaster</small>" : '<small>' + (S.winner ? 'Game over.' : 'Waiting for ' + cap(S.turn) + "'s spymaster.") + '</small>';
+  $('hGuess').textContent = guessHint(S);
+  const col = t => {
+    const items = ps.filter(p => p.team === t).sort((a, b) => (a.role === 'spymaster' ? -1 : 1) - (b.role === 'spymaster' ? -1 : 1))
+      .map(p => '<li><span>' + esc(p.name) + '</span><span class="role">' + (p.role === 'spymaster' ? 'Spymaster' : 'Op') + '</span></li>').join('');
+    return '<div class="' + t + '"><h3>' + cap(t) + '</h3><ul>' + (items || '<li class="muted">Nobody</li>') + '</ul></div>';
+  };
+  $('hRoster').innerHTML = col('red') + col('blue');
+  $('hLate').textContent = 'Late arrivals can join with code ' + S.code + ' and land on the smaller team.';
+  renderLog($('hLog'), S);
+  renderRecords($('hRecords'), ps);
+  $('hEnd').disabled = !S.clue_word || !!S.winner;
+}
+$('hStart').addEventListener('click', () => hostCall('start_game', { p_host: ROOM.token, p_words: dealWords(), p_reshuffle: true }, $('hLobbyErr'), $('hStart')));
+$('hAgain').addEventListener('click', () => hostCall('start_game', { p_host: ROOM.token, p_words: dealWords(), p_reshuffle: false }, $('hGameErr'), $('hAgain')));
+$('hShuffle').addEventListener('click', () => hostCall('start_game', { p_host: ROOM.token, p_words: dealWords(), p_reshuffle: true }, $('hGameErr'), $('hShuffle')));
+$('hEnd').addEventListener('click', () => hostCall('end_turn', { p_token: ROOM.token }, $('hGameErr'), $('hEnd')));
+$('hLobbyBtn').addEventListener('click', () => hostCall('back_to_lobby', { p_host: ROOM.token }, $('hGameErr'), $('hLobbyBtn')));
+$('hExit').addEventListener('click', () => { store.del(KEY_HOST); disconnect(); goHome(); });
+
+/* ---------- player ---------- */
+let sel = null, busy = false;
+function enterPlayer(p) {
+  show('Player'); setUrl({ room: p.code });
+  $('pSeat').innerHTML = '<b>Joining ' + esc(p.code) + '…</b>';
+  sel = null; busy = false;
+  connect({ code: p.code, token: p.token, as: 'player' });
+}
+async function playerCall(fn, args) {
+  busy = true; renderPlayer();
+  try { await rpc(fn, Object.assign({ p_code: ROOM.code, p_token: ROOM.token }, args)); sel = null; await refresh(); }
+  catch (e) { toast(friendly(e)); await refresh(); }
+  busy = false; renderPlayer();
+}
+function renderPlayer() {
+  if (!S || !ROOM || ROOM.as !== 'player') return;
+  const me = S.me || {};
+  const playing = S.status === 'playing' && me.team;
+  $('pSeat').innerHTML = (playing ? '<span class="tag ' + me.team + '">' + cap(me.team) + '</span>' : '') + '<b></b><span class="muted">' + (playing ? (me.role === 'spymaster' ? 'Spymaster' : 'Operative') : 'Room ' + esc(S.code)) + '</span>';
+  $('pSeat').querySelector('b').textContent = me.name || '';
+  const myRow = (S.players || []).find(p => p.id === me.id);
+  if (myRow && myRow.all_games) {
+    const r = document.createElement('span'); r.className = 'muted';
+    r.textContent = '· ' + rec(myRow.wins, myRow.games) + ' tonight';
+    r.title = 'All-time ' + rec(myRow.all_wins, myRow.all_games);
+    $('pSeat').appendChild(r);
+  }
+  $('pLobby').hidden = !!playing; $('pGame').hidden = !playing;
+  if (!playing) {
+    const list = $('pPlayers'); list.innerHTML = '';
+    (S.players || []).forEach(p => { const li = document.createElement('li'); li.style.paddingRight = '14px'; li.textContent = p.name + (p.id === me.id ? ' (you)' : ''); list.appendChild(li); });
+    $('pConfirm').hidden = true;
+    return;
+  }
+  const spy = me.role === 'spymaster';
+  const mine = !S.winner && S.turn === me.team;
+  $('pRole').innerHTML = S.log && S.log.length ? '' : '<div class="role-card ' + me.team + '"><span>You are on</span><b>' + cap(me.team) + ' · ' + (spy ? 'Spymaster' : 'Operative') + '</b><span>' + (spy ? 'Only you can see the colors. Give one-word clues.' : 'Guess the words your spymaster is hinting at.') + '</span></div>';
+  const sub = S.winner ? (S.win_reason || '') : mine ? (spy ? (S.clue_word ? 'Your operatives are guessing.' : 'Your turn: give a clue.') : (S.clue_word ? 'Your turn: tap a card to guess.' : 'Waiting for your spymaster.')) : 'Waiting for ' + cap(S.turn) + '.';
+  $('pStatus').innerHTML = '<div class="pstatus"><span class="count" style="color:var(--red)">' + left(S, 'red') + '</span><div style="text-align:center;min-width:0">' +
+    (S.winner ? '<span class="turn-pill ' + S.winner + '">' + cap(S.winner) + ' wins</span>' : '<span class="turn-pill ' + S.turn + '">' + cap(S.turn) + "'s turn</span>") +
+    '<div class="turn-sub' + (mine ? ' yourturn' : '') + '">' + esc(sub) + '</div></div><span class="count" style="color:var(--blue)">' + left(S, 'blue') + '</span></div>';
+
+  const act = $('pAction');
+  const keepWord = $('pClueWord') ? $('pClueWord').value : '';
+  const keepNum = $('pClueNum') ? $('pClueNum').value : '1';
+  if (S.winner) {
+    act.innerHTML = '<div class="current-clue">' + cap(S.winner) + ' wins<small>The host can start the next game from the big screen.</small></div>';
+  } else if (spy && mine && !S.clue_word) {
+    act.innerHTML = '<h2>Give a clue</h2><form class="clue-form" id="pClueForm" autocomplete="off"><input id="pClueWord" maxlength="30" placeholder="One-word clue" aria-label="Clue word"><select id="pClueNum" aria-label="Number of words">' + numOptions() + '</select><button class="btn primary" type="submit"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Sending…' : 'Send clue') + '</button></form>';
+    $('pClueWord').value = keepWord; $('pClueNum').value = keepNum;
+    $('pClueForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const word = $('pClueWord').value.trim();
+      if (!word) { toast('Type a clue word first.'); return; }
+      if (/\s/.test(word)) { toast(ERRORS.bad_clue); return; }
+      playerCall('give_clue', { p_word: word, p_num: $('pClueNum').value });
+    });
+  } else if (S.clue_word) {
+    act.innerHTML = '<div class="current-clue">' + esc(S.clue_word + ' · ' + clueLabel(S)) + '<small>' + esc(cap(S.turn) + "'s clue · " + guessHint(S)) + '</small></div>' +
+      (!spy && mine ? '<div class="row"><button class="btn" type="button" id="pEnd"' + (busy ? ' disabled' : '') + '>End our turn</button></div>' : '');
+    const end = $('pEnd'); if (end) end.addEventListener('click', () => playerCall('end_turn', {}));
+  } else {
+    act.innerHTML = '<div class="current-clue"><small>Waiting for ' + cap(S.turn) + "'s spymaster to give a clue.</small></div>";
+  }
+  const canGuess = !spy && mine && !!S.clue_word && !busy;
+  if (sel !== null && (!canGuess || S.revealed[sel])) sel = null;
+  renderBoard($('pBoard'), S, { sel, can: i => canGuess && !S.revealed[i], onPick: i => { sel = i; renderPlayer(); } });
+  $('pNote').textContent = busy ? 'Sending…' : spy ? 'You can see the key. Keep your screen hidden from the other players.' : '';
+  if (sel !== null) { $('pConfirmWord').textContent = S.words[sel]; $('pConfirm').hidden = false; } else $('pConfirm').hidden = true;
+}
+$('pConfirmGo').addEventListener('click', () => { if (sel === null) return; const i = sel; sel = null; playerCall('reveal_card', { p_index: i }); });
+$('pConfirmNo').addEventListener('click', () => { sel = null; renderPlayer(); });
+$('pLeave').addEventListener('click', async () => {
+  const r = ROOM; if (!r) return;
+  try { await rpc('leave_room', { p_code: r.code, p_token: r.token }); } catch (e) {}
+  store.del(keyPlayer(r.code)); disconnect(); goHome('You left room ' + r.code + '.');
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  $('wordsGate').hidden = true;
+  if (sel !== null) { sel = null; renderPlayer(); }
+});
+
+/* ---------- boot ---------- */
+(function boot() {
+  const q = new URLSearchParams(location.search);
+  const join = (q.get('join') || '').toUpperCase(), room = (q.get('room') || '').toUpperCase(), host = (q.get('host') || '').toUpperCase();
+  if (!sb) { goHome("Couldn't load the game library. Check your connection and reload the page."); return; }
+  if (host) { try { const h = JSON.parse(store.get(KEY_HOST, 'null')); if (h && h.code === host) { enterHost(h); return; } } catch (e) {} }
+  const code = room || join;
+  if (code) {
+    const tok = store.get(keyPlayer(code), null);
+    if (tok) { enterPlayer({ code, token: tok }); return; }
+    goHome(); $('jCode').value = code; $('jName').focus(); return;
+  }
+  goHome();
+})();
+</script>
+</body>
+</html>
