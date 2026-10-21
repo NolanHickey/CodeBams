@@ -56,6 +56,18 @@ header.top { display: flex; align-items: center; justify-content: space-between;
 .btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .btn.big { padding: 12px 18px; font-size: 16px; }
 .btn.go { background: var(--ok); border-color: var(--ok); color: #fff; }
+.btn.red { background: var(--red); border-color: var(--red); color: var(--on-team); }
+.btn.blue { background: var(--blue); border-color: var(--blue); color: var(--on-team); }
+.btn.cur { outline: 3px solid var(--focus); outline-offset: 1px; }
+.testtools { border-style: dashed; }
+.testtools summary { cursor: pointer; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; list-style: none; }
+.testtools summary::-webkit-details-marker { display: none; }
+.testtools summary::before { content: "▸"; color: var(--muted); }
+.testtools[open] summary::before { content: "▾"; }
+.tt-title { font-family: var(--font-card); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.tt-body { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+.testbar { background: var(--surface); border: 1px dashed var(--focus); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.testbar .btn { padding: 6px 10px; font-size: 13px; }
 .label { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 600; }
 .hint { font-size: 13px; color: var(--muted); margin: 0; }
 .muted { color: var(--muted); }
@@ -324,6 +336,32 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
       </aside>
     </div>
   </section>
+
+  <details class="panel testtools" id="hTest">
+    <summary><span class="tt-title">Test tools</span><span class="hint">Play every seat from this screen and force a winner</span></summary>
+    <div class="tt-body">
+      <div class="row">
+        <button class="btn" type="button" id="ttAdd">Add 4 test players</button>
+        <button class="btn" type="button" id="ttRemove">Remove test players</button>
+      </div>
+      <div>
+        <div class="label" style="margin-bottom:6px">Play as</div>
+        <div class="row" id="ttSeats"><span class="hint">No test players yet.</span></div>
+      </div>
+      <div class="row" id="ttWordRow" hidden>
+        <button class="btn" type="button" id="ttSkip">Mark test players done with the word round</button>
+      </div>
+      <div>
+        <div class="label" style="margin-bottom:6px">End the current game</div>
+        <div class="row">
+          <button class="btn red" type="button" id="ttRed">Red wins</button>
+          <button class="btn blue" type="button" id="ttBlue">Blue wins</button>
+        </div>
+      </div>
+      <p class="hint">Test players have no phone, so their games never count toward all-time records. Ending a game here never counts toward anyone's record.</p>
+      <p class="err" id="ttErr"></p>
+    </div>
+  </details>
 </div>
 
 <!-- PLAYER -->
@@ -332,6 +370,13 @@ textarea { width: 100%; min-height: 170px; resize: vertical; padding: 10px 12px;
     <h1 class="logo sm">Code<span>b</span><em>a</em>ms</h1>
     <span class="conn" id="pConn">Connecting…</span>
   </header>
+  <div class="testbar" id="pTestBar" hidden>
+    <div class="row" style="justify-content:space-between">
+      <span>Test mode: playing as <b id="ptbName"></b></span>
+      <button class="btn" type="button" id="ptbBack">Back to big screen</button>
+    </div>
+    <div class="row" id="ptbSeats"></div>
+  </div>
   <div class="seatbar"><span class="seat-chip" id="pSeat"></span><button class="btn" type="button" id="pLeave">Leave</button></div>
 
   <section id="pLobby" hidden>
@@ -457,6 +502,7 @@ function parseDares(text) {
 const ERRORS = {
   time_up: 'Time ran out for that clue. The turn passed to the other team.',
   pick_targets: 'Tap the cards your clue is aimed at, between 1 and 9 of your team\'s cards.',
+  bad_winner: 'Pick Red or Blue as the winner.',
   bad_targets: 'You can only aim at your own team\'s cards that are still face down.',
   room_not_found: "There's no room with that code. Check the code on the big screen.",
   name_required: 'Enter your name so the others can see who joined.',
@@ -657,7 +703,8 @@ async function refresh() {
   } catch (e) {
     if (ROOM === room) {
       const m = e.message || '';
-      if (m.includes('not_member') || m.includes('room_not_found') || m.includes('not_host')) {
+      if (room.as === 'player' && testHost && m.includes('not_member')) { const h = testHost; testHost = null; enterHost(h); }
+      else if (m.includes('not_member') || m.includes('room_not_found') || m.includes('not_host')) {
         if (room.as === 'host') store.del(KEY_HOST); else store.del(keyPlayer(room.code));
         disconnect(); goHome(m.includes('room_not_found') ? 'That room has closed.' : "You're no longer in that room.");
       }
@@ -740,6 +787,7 @@ function renderRecords(el, ps) {
   });
 }
 function renderHost() {
+  renderTestTools();
   const lobby = S.status === 'lobby', words = S.status === 'words';
   $('hLobby').hidden = !lobby; $('hWordRound').hidden = !words; $('hGame').hidden = lobby || words;
   const ps = S.players || [];
@@ -826,7 +874,11 @@ $('hExit').addEventListener('click', () => { store.del(KEY_HOST); disconnect(); 
 /* ---------- player ---------- */
 let sel = null, busy = false;
 function enterPlayer(p) {
-  show('Player'); setUrl({ room: p.code });
+  show('Player');
+  const testing = !!(testHost && testHost.code === p.code);
+  setUrl(testing ? { host: p.code } : { room: p.code });
+  $('pTestBar').hidden = !testing; $('pLeave').hidden = testing;
+  if (testing) renderTestBar(p.token);
   $('pSeat').innerHTML = '<b>Joining ' + esc(p.code) + '…</b>';
   sel = null; busy = false;
   connect({ code: p.code, token: p.token, as: 'player' });
@@ -1036,6 +1088,89 @@ document.addEventListener('keydown', e => {
   $('wordsGate').hidden = true;
   if (sel !== null) { sel = null; renderPlayer(); }
 });
+
+/* ---------- test tools (host) ---------- */
+// The host can add test players and act as each one from this screen, so a whole game can be played alone.
+let testHost = null;
+const keyTest = code => 'codebams.test.' + code;
+function testSeats(code) { try { return JSON.parse(store.get(keyTest(code), '[]')) || []; } catch (e) { return []; } }
+function saveTestSeats(code, list) { store.set(keyTest(code), JSON.stringify(list)); }
+function seatLabel(seat) {
+  const p = S && (S.players || []).find(x => x.id === seat.id);
+  if (!p) return seat.name;
+  return p.team ? seat.name + ' · ' + cap(p.team) + ' ' + (p.role === 'spymaster' ? 'spymaster' : 'op') : seat.name;
+}
+function renderTestTools() {
+  if (!ROOM || ROOM.as !== 'host') return;
+  // Forget seats that were removed from the room.
+  const ids = new Set((S.players || []).map(p => p.id));
+  const seats = testSeats(ROOM.code).filter(t => ids.has(t.id));
+  saveTestSeats(ROOM.code, seats);
+  const box = $('ttSeats'); box.innerHTML = '';
+  if (!seats.length) box.innerHTML = '<span class="hint">No test players yet.</span>';
+  seats.forEach(t => {
+    const p = (S.players || []).find(x => x.id === t.id);
+    const b = document.createElement('button'); b.type = 'button';
+    b.className = 'btn' + (p && p.team ? ' ' + p.team : '');
+    b.textContent = seatLabel(t);
+    b.addEventListener('click', () => actAs(t));
+    box.appendChild(b);
+  });
+  $('ttRemove').disabled = !seats.length;
+  $('ttAdd').disabled = (S.players || []).length >= 26;
+  $('ttWordRow').hidden = S.status !== 'words' || !seats.length;
+  const canEnd = S.status === 'playing' && !S.winner;
+  $('ttRed').disabled = !canEnd; $('ttBlue').disabled = !canEnd;
+}
+function actAs(seat) {
+  let host = null; try { host = JSON.parse(store.get(KEY_HOST, 'null')); } catch (e) {}
+  if (!host) return;
+  testHost = host;
+  enterPlayer({ code: host.code, token: seat.token });
+}
+function renderTestBar(token) {
+  const seats = testSeats(testHost.code);
+  const cur = seats.find(t => t.token === token);
+  $('ptbName').textContent = cur ? cur.name : 'a test player';
+  const box = $('ptbSeats'); box.innerHTML = '';
+  seats.forEach(t => {
+    const b = document.createElement('button'); b.type = 'button';
+    b.className = 'btn' + (t.token === token ? ' cur' : '');
+    b.textContent = t.name;
+    b.addEventListener('click', () => { if (t.token !== token) enterPlayer({ code: testHost.code, token: t.token }); });
+    box.appendChild(b);
+  });
+}
+$('ptbBack').addEventListener('click', () => { const h = testHost; testHost = null; if (h) enterHost(h); });
+$('ttAdd').addEventListener('click', async () => {
+  const code = ROOM.code, b = $('ttAdd'); b.disabled = true; $('ttErr').textContent = '';
+  const seats = testSeats(code);
+  try {
+    for (let i = 0; i < 4; i++) {
+      const name = 'Test ' + (seats.length + 1);
+      const r = await rpc('join_room', { p_code: code, p_name: name, p_device: null });
+      seats.push({ name, token: r.token, id: r.player_id });
+      saveTestSeats(code, seats);
+    }
+  } catch (e) { $('ttErr').textContent = friendly(e); }
+  await refresh(); b.disabled = false;
+});
+$('ttRemove').addEventListener('click', async () => {
+  const code = ROOM.code; $('ttErr').textContent = '';
+  for (const t of testSeats(code)) { try { await rpc('kick_player', { p_code: code, p_host: ROOM.token, p_player: t.id }); } catch (e) {} }
+  saveTestSeats(code, []); refresh();
+});
+$('ttSkip').addEventListener('click', async () => {
+  const code = ROOM.code; $('ttErr').textContent = '';
+  for (const t of testSeats(code)) {
+    const p = (S.players || []).find(x => x.id === t.id);
+    if (p && p.done) continue;
+    try { await rpc('submit_words_v2', { p_code: code, p_token: t.token, p_words: [], p_dares: [] }); } catch (e) { $('ttErr').textContent = friendly(e); }
+  }
+  refresh();
+});
+$('ttRed').addEventListener('click', () => hostCall('host_end_game', { p_host: ROOM.token, p_winner: 'red' }, $('ttErr'), $('ttRed')));
+$('ttBlue').addEventListener('click', () => hostCall('host_end_game', { p_host: ROOM.token, p_winner: 'blue' }, $('ttErr'), $('ttBlue')));
 
 /* ---------- boot ---------- */
 (function boot() {
